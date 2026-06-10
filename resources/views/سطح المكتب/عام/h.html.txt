@@ -1,0 +1,21 @@
+ دفع عبر تطبيقنا، وبعد العملية استلم رسالة من البنك بالنص التالي:
+
+"تم إجراء تعديل على عملية : SAR 1053.5 باستخدام بطاقتك على : Zadah Elgoud بتاريخ: 11-05-2026 00:36:00
+رمز العملية : 3220111608"
+
+بينما بيانات العملية لدينا تظهر أنها Approved.
+
+تفاصيل العملية:
+
+* Merchant: Zadah Elgoud
+* Amount: 1053.5 SAR
+* Transaction ID / Reconciliation ID: 1777227889
+* ConnectorTxID: 18acda4a79dba26f2019dcb09a35c6441
+* Acquirer Response: APPROVED
+* Acquirer Message: Approved
+* Authorization Code: 022254
+* STAN: 165415
+* Settlement Date: 2026-04-26
+
+نرجو التوضيح
+وشكرًا لكم

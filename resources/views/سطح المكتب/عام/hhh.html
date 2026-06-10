@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .بطاقة {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      width: 320px;
+      border: 1px solid #ddd;
+      transition: transform 0.3s;
+    }
+    .بطاقة:hover { transform: translateY(-5px); }
+    .رأس-بطاقة {
+      background: #185FA5;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .صورة {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid white;
+      margin-bottom: 10px;
+    }
+    .الاسم { color: white; font-size: 20px; margin: 0; font-weight: bold; }
+    .المسمى { color: rgba(255,255,255,0.8); font-size: 14px; margin: 4px 0 0; }
+    .جسم-البطاقة { padding: 20px; }
+    .مهارة {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .شريط { flex: 1; height: 8px; background: #eee; border-radius: 4px; margin: 0 10px; }
+    .تعبئة { height: 100%; background: #185FA5; border-radius: 4px; }
+    .أزرار {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .زر-b {
+      flex: 1; padding: 10px;
+      border: none; border-radius: 8px;
+      cursor: pointer; font-size: 13px;
+      transition: opacity 0.2s;
+    }
+    .زر-b:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+  <div class="بطاقة">
+    <div class="رأس-بطاقة">
+      <img class="صورة" src="https://picsum.photos/80/80?random=7" alt="صورة">
+      <p class="الاسم"> عبدالسلام كامل الحميري </p>
+      <p class="المسمى">مطور ويب مبتدئ</p>
+    </div>
+    <div class="جسم-البطاقة">
+      <div class="مهارة">
+        <span>HTML</span>
+        <div class="شريط"><div class="تعبئة" style="width:90%"></div></div>
+        <span>90%</span>
+      </div>
+      <div class="">
+        <span>CSS</span>
+        <div class="شريط"><div class="تعبئة" style="width:70%"></div></div>
+        <span>70%</span>
+      </div>
+      <div class="مهارة">
+        <span>JS</span>
+        <div class="شريط"><div class="تعبئة" style="width:40%"></div></div>
+        <span>40%</span>
+      </div>
+      <div class="أزرار">
+        <button class="زر-b" style="background:#185FA5;color:white">تواصل</button>
+        <button class="زر-b" style="background:#f0f4f8;color:#185FA5">مشاريعي</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
