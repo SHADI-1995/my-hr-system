@@ -28,7 +28,8 @@ use App\Http\Controllers\ManagerLeaveApprovalController;
 use App\Http\Controllers\HrLeaveApprovalController;
 use App\Http\Controllers\LeaveReportsHubController;
 
-
+use App\Http\Controllers\EmployeeDeductionController;
+use App\Http\Controllers\EmployeeSuspensionController;
 
 Route::redirect('/', '/login');
 
@@ -725,6 +726,26 @@ Route::middleware('auth')->group(function () {
         ->name('leave-reports.hub.export');
 
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Phase 2: Deductions & Suspensions
+    |--------------------------------------------------------------------------
+    |
+    */
+
+    Route::get('/employee-deductions', [EmployeeDeductionController::class, 'index'])->name('employee-deductions.index');
+    Route::get('/employee-deductions/create', [EmployeeDeductionController::class, 'create'])->name('employee-deductions.create');
+    Route::post('/employee-deductions', [EmployeeDeductionController::class, 'store'])->name('employee-deductions.store');
+    Route::post('/employee-deductions/{employeeDeduction}/approve', [EmployeeDeductionController::class, 'approve'])->name('employee-deductions.approve');
+    Route::post('/employee-deductions/{employeeDeduction}/cancel', [EmployeeDeductionController::class, 'cancel'])->name('employee-deductions.cancel');
+
+    Route::get('/employee-suspensions', [EmployeeSuspensionController::class, 'index'])->name('employee-suspensions.index');
+    Route::get('/employee-suspensions/create', [EmployeeSuspensionController::class, 'create'])->name('employee-suspensions.create');
+    Route::post('/employee-suspensions', [EmployeeSuspensionController::class, 'store'])->name('employee-suspensions.store');
+    Route::post('/employee-suspensions/{employeeSuspension}/resume', [EmployeeSuspensionController::class, 'resume'])->name('employee-suspensions.resume');
+    Route::post('/employee-suspensions/{employeeSuspension}/cancel', [EmployeeSuspensionController::class, 'cancel'])->name('employee-suspensions.cancel');
 
 
     /*

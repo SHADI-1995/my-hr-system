@@ -11,20 +11,15 @@ class Employee extends Model
 
     protected $fillable = [
         'employee_number',
-
         'first_name',
         'second_name',
         'last_name',
         'full_name',
-
         'email',
         'phone',
-
         'department_id',
         'position_id',
         'nationality_id',
-
-        // المدير المباشر للموظف
         'direct_manager_user_id',
 
         // بيانات بوابة الموظف
@@ -36,14 +31,24 @@ class Employee extends Model
         'termination_date',
         'termination_reason',
 
+        // بيانات الراتب الحالية
         'basic_salary',
         'housing_allowance',
         'transport_allowance',
         'food_allowance',
         'other_allowance',
 
+        // بيانات البنك
         'bank_name',
         'iban',
+
+        // بيانات نظام الرواتب ومسير الرواتب
+        'salary_payment_method',
+        'payroll_status',
+        'salary_effective_date',
+        'bank_account_name',
+        'payroll_group',
+        'cost_center',
 
         'status',
         'notes',
@@ -52,6 +57,7 @@ class Employee extends Model
     protected $casts = [
         'hire_date' => 'date',
         'termination_date' => 'date',
+        'salary_effective_date' => 'date',
         'portal_registered_at' => 'datetime',
         'portal_last_login_at' => 'datetime',
         'basic_salary' => 'decimal:2',
@@ -72,11 +78,19 @@ class Employee extends Model
 
                 $nextNumber = 1;
 
-                if ($lastEmployee && preg_match('/EMP-(\d+)/', $employee->employee_number, $matches)) {
+                if ($lastEmployee && preg_match('/EMP-(\d+)/', (string) $lastEmployee->employee_number, $matches)) {
                     $nextNumber = ((int) $matches[1]) + 1;
                 }
 
-                $employee->employee_number = 'EMP-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+                $employee->employee_number = 'EMP-' . str_pad((string) $nextNumber, 6, '0', STR_PAD_LEFT);
+            }
+
+            if (empty($employee->payroll_status)) {
+                $employee->payroll_status = 'included';
+            }
+
+            if (empty($employee->salary_payment_method)) {
+                $employee->salary_payment_method = 'bank_transfer';
             }
         });
 
@@ -93,29 +107,60 @@ class Employee extends Model
         });
 
         static::updated(function ($employee) {
-            if ($employee->wasChanged('basic_salary')) {
-                $oldSalary = (float) $employee->getOriginal('basic_salary');
-                $newSalary = (float) $employee->basic_salary;
-                $changeAmount = $newSalary - $oldSalary;
+            $salaryFields = [
+                'basic_salary',
+                'housing_allowance',
+                'transport_allowance',
+                'food_allowance',
+                'other_allowance',
+            ];
 
-                $changePercentage = 0;
-
-                if ($oldSalary > 0) {
-                    $changePercentage = ($changeAmount / $oldSalary) * 100;
-                }
-
-                EmployeeSalaryHistory::create([
-                    'employee_id' => $employee->id,
-                    'old_basic_salary' => $oldSalary,
-                    'new_basic_salary' => $newSalary,
-                    'change_amount' => $changeAmount,
-                    'change_percentage' => $changePercentage,
-                    'effective_date' => now()->toDateString(),
-                    'reason' => 'تعديل الراتب الأساسي من ملف الموظف',
-                    'changed_by' => auth()->id(),
-                    'notes' => null,
-                ]);
+            if (!$employee->wasChanged($salaryFields)) {
+                return;
             }
+
+            $oldBasicSalary = (float) $employee->getOriginal('basic_salary');
+            $newBasicSalary = (float) $employee->basic_salary;
+            $changeAmount = $newBasicSalary - $oldBasicSalary;
+
+            $changePercentage = 0;
+
+            if ($oldBasicSalary > 0) {
+                $changePercentage = ($changeAmount / $oldBasicSalary) * 100;
+            }
+
+            $totalSalary =
+                (float) ($employee->basic_salary ?? 0)
+                + (float) ($employee->housing_allowance ?? 0)
+                + (float) ($employee->transport_allowance ?? 0)
+                + (float) ($employee->food_allowance ?? 0)
+                + (float) ($employee->other_allowance ?? 0);
+
+            EmployeeSalaryHistory::create([
+                'employee_id' => $employee->id,
+
+                // الحقول القديمة الموجودة عندك
+                'old_basic_salary' => $oldBasicSalary,
+                'new_basic_salary' => $newBasicSalary,
+                'change_amount' => $changeAmount,
+                'change_percentage' => $changePercentage,
+                'effective_date' => $employee->salary_effective_date ?: now()->toDateString(),
+                'reason' => 'تعديل بيانات الراتب من ملف الموظف',
+                'notes' => null,
+
+                // الحقول الجديدة المطلوبة لمسير الرواتب
+                'basic_salary' => $employee->basic_salary ?? 0,
+                'housing_allowance' => $employee->housing_allowance ?? 0,
+                'transport_allowance' => $employee->transport_allowance ?? 0,
+                'food_allowance' => $employee->food_allowance ?? 0,
+                'other_allowance' => $employee->other_allowance ?? 0,
+                'total_salary' => $totalSalary,
+                'effective_from' => $employee->salary_effective_date ?: now()->toDateString(),
+                'effective_to' => null,
+                'change_reason' => 'تعديل بيانات الراتب من ملف الموظف',
+
+                'changed_by' => auth()->id(),
+            ]);
         });
     }
 
@@ -131,6 +176,15 @@ class Employee extends Model
             ($this->second_name ?? '') . ' ' .
             ($this->last_name ?? '')
         );
+    }
+
+    public function getCurrentTotalSalaryAttribute()
+    {
+        return (float) ($this->basic_salary ?? 0)
+            + (float) ($this->housing_allowance ?? 0)
+            + (float) ($this->transport_allowance ?? 0)
+            + (float) ($this->food_allowance ?? 0)
+            + (float) ($this->other_allowance ?? 0);
     }
 
     public function department()
@@ -201,6 +255,26 @@ class Employee extends Model
     public function salaryHistories()
     {
         return $this->hasMany(EmployeeSalaryHistory::class);
+    }
+
+    public function latestSalaryHistory()
+    {
+        return $this->hasOne(EmployeeSalaryHistory::class)->latestOfMany();
+    }
+
+    public function deductions()
+    {
+        return $this->hasMany(EmployeeDeduction::class);
+    }
+
+    public function suspensions()
+    {
+        return $this->hasMany(EmployeeSuspension::class);
+    }
+
+    public function activeSuspensions()
+    {
+        return $this->hasMany(EmployeeSuspension::class)->where('status', 'active');
     }
 
     public function leaveBalances()
