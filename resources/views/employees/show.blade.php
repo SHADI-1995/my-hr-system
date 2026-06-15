@@ -267,6 +267,35 @@
             };
         }
 
+        function salaryPaymentMethodText($method) {
+            return match($method) {
+                'bank_transfer' => 'تحويل بنكي',
+                'cash' => 'نقدي',
+                'cheque' => 'شيك',
+                default => $method ?: '-',
+            };
+        }
+
+        function payrollStatusText($status) {
+            return match($status) {
+                'included' => 'يدخل في مسير الرواتب',
+                'excluded' => 'مستبعد من مسير الرواتب',
+                default => $status ?: '-',
+            };
+        }
+
+        function payrollStatusBadge($status) {
+            if ($status === 'included' || empty($status)) {
+                return '<span class="badge badge-active">يدخل في المسير</span>';
+            }
+
+            if ($status === 'excluded') {
+                return '<span class="badge-danger-soft">مستبعد من المسير</span>';
+            }
+
+            return '<span class="badge-muted">' . $status . '</span>';
+        }
+
         function documentPhotoBox($photo, $title) {
             if (!$photo) {
                 return '
@@ -475,6 +504,80 @@
             <div class="info-box">
                 <label>IBAN</label>
                 <strong>{{ $employee->iban ?? '-' }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="card info-section">
+        <div class="section-title">
+            <i class="fas fa-file-invoice-dollar"></i>
+            بيانات مسير الرواتب
+        </div>
+
+        <div class="info-grid">
+            <div class="info-box">
+                <label>طريقة صرف الراتب</label>
+                <strong>{{ $employee->salaryPaymentMethod->name_ar ?? $employee->salary_payment_method_name ?? '-' }}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>حالة الموظف في مسير الرواتب</label>
+                <strong>{!! payrollStatusBadge($employee->payroll_status) !!}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>تاريخ سريان الراتب</label>
+                <strong>{{ optional($employee->salary_effective_date)->format('Y-m-d') ?? '-' }}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>اسم صاحب الحساب البنكي</label>
+                <strong>{{ $employee->bank_account_name ?? '-' }}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>مجموعة الرواتب</label>
+                <strong>{{ $employee->payrollGroup->name_ar ?? $employee->payroll_group_name ?? '-' }}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>مركز التكلفة</label>
+                <strong>
+                    @if($employee->costCenter)
+                        {{ $employee->costCenter->code }} - {{ $employee->costCenter->name_ar }}
+                    @else
+                        {{ $employee->cost_center_name ?? '-' }}
+                    @endif
+                </strong>
+            </div>
+
+            <div class="info-box">
+                <label>إجمالي الراتب الحالي</label>
+                <strong>{{ number_format($employee->current_total_salary, 2) }}</strong>
+            </div>
+
+            <div class="info-box">
+                <label>آخر مسير راتب</label>
+                <strong>
+                    @if($employee->latestPayrollItem && $employee->latestPayrollItem->payrollPeriod)
+                        {{ $employee->latestPayrollItem->payrollPeriod->period_number }}
+                        -
+                        {{ $employee->latestPayrollItem->payrollPeriod->month }}
+                    @else
+                        -
+                    @endif
+                </strong>
+            </div>
+
+            <div class="info-box">
+                <label>صافي آخر راتب محتسب</label>
+                <strong>
+                    @if($employee->latestPayrollItem)
+                        {{ number_format($employee->latestPayrollItem->net_salary, 2) }}
+                    @else
+                        -
+                    @endif
+                </strong>
             </div>
         </div>
     </div>

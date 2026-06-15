@@ -23,13 +23,19 @@
             color: #333;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group textarea {
             width: 100%;
             padding: 11px 12px;
             border: 1px solid #ddd;
             border-radius: 10px;
             outline: none;
             background: #fff;
+        }
+
+        .form-group textarea {
+            min-height: 95px;
+            resize: vertical;
         }
 
         .toggle-grid {
@@ -53,6 +59,33 @@
             width: auto;
         }
 
+        .payroll-section {
+            margin-top: 22px;
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid #ddd6fe;
+            background: #f7f3ff;
+        }
+
+        .payroll-section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4c3b91;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .payroll-section-title i {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #ede9fe;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .form-actions {
             display: flex;
             gap: 12px;
@@ -67,6 +100,7 @@
             color: #6b7280;
             font-size: 12px;
             margin-top: 6px;
+            line-height: 1.7;
         }
 
         @media (max-width: 750px) {
@@ -85,7 +119,7 @@
 
             <div>
                 <h1>إضافة نوع إجازة</h1>
-                <p>تحديد قواعد نوع الإجازة وهل تخصم من الرصيد السنوي أم لا</p>
+                <p>تحديد قواعد نوع الإجازة وهل تخصم من الرصيد السنوي أو تؤثر على مسير الرواتب</p>
             </div>
         </div>
 
@@ -162,6 +196,43 @@
                 </label>
             </div>
 
+            <div class="payroll-section">
+                <div class="payroll-section-title">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>إعدادات تأثير الإجازة على مسير الرواتب</span>
+                </div>
+
+                <div class="toggle-grid">
+                    <label class="toggle-box">
+                        <input type="checkbox" name="affects_payroll" value="1" {{ old('affects_payroll') ? 'checked' : '' }}>
+                        <span>تؤثر على مسير الرواتب</span>
+                    </label>
+                </div>
+
+                <div class="form-grid" style="margin-top:18px;">
+                    <div class="form-group">
+                        <label>نسبة الراتب أثناء الإجازة <span class="required">*</span></label>
+                        <input type="number"
+                               name="salary_percentage"
+                               value="{{ old('salary_percentage', 100) }}"
+                               min="0"
+                               max="100"
+                               step="0.01"
+                               placeholder="مثال: 100 أو 0 أو 50">
+                        <div class="hint">
+                            100 = الإجازة مدفوعة بالكامل<br>
+                            0 = إجازة بدون راتب<br>
+                            50 = إجازة نصف راتب
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ملاحظة سياسة الراتب</label>
+                        <textarea name="payroll_policy_note" placeholder="مثال: تخصم هذه الإجازة من مسير الرواتب بنسبة 100% إذا كانت بدون راتب">{{ old('payroll_policy_note') }}</textarea>
+                    </div>
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn">
                     <i class="fas fa-save"></i>
@@ -173,4 +244,3 @@
         </form>
     </div>
 @endsection
-

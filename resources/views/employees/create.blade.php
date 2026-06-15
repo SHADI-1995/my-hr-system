@@ -278,7 +278,7 @@
 
             <div>
                 <h1>إضافة موظف جديد</h1>
-                <p>إدخال بيانات الموظف الأساسية والوظيفية والمالية والوثائق</p>
+                <p>إدخال بيانات الموظف الأساسية والوظيفية والمالية ومسير الرواتب والوثائق</p>
             </div>
         </div>
 
@@ -511,6 +511,76 @@
                     <div class="form-group">
                         <label>IBAN</label>
                         <input type="text" name="iban" value="{{ old('iban') }}" placeholder="SAxxxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+                </div>
+            </div>
+
+            <div class="employee-form-section">
+                <div class="section-title">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    بيانات مسير الرواتب
+                </div>
+
+                <div class="optional-note">
+                    هذا القسم يحدد طريقة دخول الموظف في مسير الرواتب وطريقة صرف الراتب. إذا كان الموظف مستبعدًا فلن يدخل في احتساب مسير الرواتب.
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>طريقة صرف الراتب</label>
+                        <select name="salary_payment_method_id">
+                            <option value="">اختر طريقة صرف الراتب</option>
+
+                            @foreach($salaryPaymentMethods as $method)
+                                <option value="{{ $method->id }}" {{ old('salary_payment_method_id') == $method->id ? 'selected' : '' }}>
+                                    {{ $method->name_ar }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>حالة الموظف في مسير الرواتب</label>
+                        <select name="payroll_status">
+                            <option value="included" {{ old('payroll_status', 'included') == 'included' ? 'selected' : '' }}>يدخل في مسير الرواتب</option>
+                            <option value="excluded" {{ old('payroll_status') == 'excluded' ? 'selected' : '' }}>مستبعد من مسير الرواتب</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>تاريخ سريان الراتب</label>
+                        <input type="date" name="salary_effective_date" value="{{ old('salary_effective_date') }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>اسم صاحب الحساب البنكي</label>
+                        <input type="text" name="bank_account_name" value="{{ old('bank_account_name') }}" placeholder="اسم صاحب الحساب كما في البنك">
+                    </div>
+
+                    <div class="form-group">
+                        <label>مجموعة الرواتب</label>
+                        <select name="payroll_group_id">
+                            <option value="">اختر مجموعة الرواتب</option>
+
+                            @foreach($payrollGroups as $group)
+                                <option value="{{ $group->id }}" {{ old('payroll_group_id') == $group->id ? 'selected' : '' }}>
+                                    {{ $group->name_ar }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>مركز التكلفة</label>
+                        <select name="cost_center_id">
+                            <option value="">اختر مركز التكلفة</option>
+
+                            @foreach($costCenters as $center)
+                                <option value="{{ $center->id }}" {{ old('cost_center_id') == $center->id ? 'selected' : '' }}>
+                                    {{ $center->code }} - {{ $center->name_ar }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             </div>

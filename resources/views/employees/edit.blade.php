@@ -348,7 +348,7 @@
 
             <div>
                 <h1>تعديل الموظف</h1>
-                <p>تعديل بيانات الموظف حسب الصلاحيات الممنوحة</p>
+                <p>تعديل بيانات الموظف والراتب ومسير الرواتب حسب الصلاحيات الممنوحة</p>
             </div>
         </div>
 
@@ -706,6 +706,108 @@
                             <input type="text" name="iban" value="{{ old('iban', $employee->iban) }}">
                         @else
                             <input type="text" value="{{ $employee->iban ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="employee-form-section">
+                <div class="section-title">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    بيانات مسير الرواتب
+                </div>
+
+                <div class="optional-note">
+                    هذا القسم يحدد طريقة دخول الموظف في مسير الرواتب وطريقة صرف الراتب وتاريخ سريان الراتب. إذا كانت الحالة "مستبعد" فلن يدخل الموظف في احتساب مسير الرواتب.
+                </div>
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+                        <label>طريقة صرف الراتب</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.basic_salary'))
+                            <select name="salary_payment_method_id">
+                                <option value="">اختر طريقة صرف الراتب</option>
+
+                                @foreach($salaryPaymentMethods as $method)
+                                    <option value="{{ $method->id }}" {{ old('salary_payment_method_id', $employee->salary_payment_method_id) == $method->id ? 'selected' : '' }}>
+                                        {{ $method->name_ar }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="text" value="{{ $employee->salaryPaymentMethod->name_ar ?? $employee->salary_payment_method_name ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                    <div class="form-group">
+                        <label>حالة الموظف في مسير الرواتب</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.basic_salary'))
+                            <select name="payroll_status">
+                                <option value="included" {{ old('payroll_status', $employee->payroll_status ?? 'included') == 'included' ? 'selected' : '' }}>يدخل في مسير الرواتب</option>
+                                <option value="excluded" {{ old('payroll_status', $employee->payroll_status) == 'excluded' ? 'selected' : '' }}>مستبعد من مسير الرواتب</option>
+                            </select>
+                        @else
+                            <input type="text" value="{{ $employee->payroll_status ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                    <div class="form-group">
+                        <label>تاريخ سريان الراتب</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.basic_salary'))
+                            <input type="date" name="salary_effective_date" value="{{ old('salary_effective_date', optional($employee->salary_effective_date)->format('Y-m-d')) }}">
+                        @else
+                            <input type="text" value="{{ optional($employee->salary_effective_date)->format('Y-m-d') ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                    <div class="form-group">
+                        <label>اسم صاحب الحساب البنكي</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.bank_name') || auth()->user()->hasPermission('employees.edit.iban'))
+                            <input type="text" name="bank_account_name" value="{{ old('bank_account_name', $employee->bank_account_name) }}" placeholder="اسم صاحب الحساب كما في البنك">
+                        @else
+                            <input type="text" value="{{ $employee->bank_account_name ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                    <div class="form-group">
+                        <label>مجموعة الرواتب</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.basic_salary'))
+                            <select name="payroll_group_id">
+                                <option value="">اختر مجموعة الرواتب</option>
+
+                                @foreach($payrollGroups as $group)
+                                    <option value="{{ $group->id }}" {{ old('payroll_group_id', $employee->payroll_group_id) == $group->id ? 'selected' : '' }}>
+                                        {{ $group->name_ar }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="text" value="{{ $employee->payrollGroup->name_ar ?? $employee->payroll_group_name ?? '-' }}" disabled>
+                        @endif
+                    </div>
+
+                    <div class="form-group">
+                        <label>مركز التكلفة</label>
+
+                        @if(auth()->user()->hasPermission('employees.edit.basic_salary'))
+                            <select name="cost_center_id">
+                                <option value="">اختر مركز التكلفة</option>
+
+                                @foreach($costCenters as $center)
+                                    <option value="{{ $center->id }}" {{ old('cost_center_id', $employee->cost_center_id) == $center->id ? 'selected' : '' }}>
+                                        {{ $center->code }} - {{ $center->name_ar }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @else
+                            <input type="text" value="{{ $employee->costCenter ? ($employee->costCenter->code . ' - ' . $employee->costCenter->name_ar) : ($employee->cost_center_name ?? '-') }}" disabled>
                         @endif
                     </div>
 

@@ -27,9 +27,18 @@ use App\Http\Controllers\EmployeePortalLeaveRequestController;
 use App\Http\Controllers\ManagerLeaveApprovalController;
 use App\Http\Controllers\HrLeaveApprovalController;
 use App\Http\Controllers\LeaveReportsHubController;
-
+use App\Http\Controllers\SalaryAdvanceController;
 use App\Http\Controllers\EmployeeDeductionController;
 use App\Http\Controllers\EmployeeSuspensionController;
+use App\Http\Controllers\PayrollPeriodController;
+use App\Http\Controllers\PayrollReportController;
+use App\Http\Controllers\SalaryPaymentMethodController;
+use App\Http\Controllers\PayrollGroupController;
+use App\Http\Controllers\CostCenterController;
+
+
+
+
 
 Route::redirect('/', '/login');
 
@@ -735,17 +744,154 @@ Route::middleware('auth')->group(function () {
     |
     */
 
-    Route::get('/employee-deductions', [EmployeeDeductionController::class, 'index'])->name('employee-deductions.index');
-    Route::get('/employee-deductions/create', [EmployeeDeductionController::class, 'create'])->name('employee-deductions.create');
-    Route::post('/employee-deductions', [EmployeeDeductionController::class, 'store'])->name('employee-deductions.store');
-    Route::post('/employee-deductions/{employeeDeduction}/approve', [EmployeeDeductionController::class, 'approve'])->name('employee-deductions.approve');
-    Route::post('/employee-deductions/{employeeDeduction}/cancel', [EmployeeDeductionController::class, 'cancel'])->name('employee-deductions.cancel');
+    Route::get('/employee-deductions', [EmployeeDeductionController::class, 'index'])->middleware('permission:employee_deductions.view')->name('employee-deductions.index');
+    Route::get('/employee-deductions/create', [EmployeeDeductionController::class, 'create'])->middleware('permission:employee_deductions.create')->name('employee-deductions.create');
+    Route::post('/employee-deductions', [EmployeeDeductionController::class, 'store'])->middleware('permission:employee_deductions.create')->name('employee-deductions.store');
+    Route::post('/employee-deductions/{employeeDeduction}/approve', [EmployeeDeductionController::class, 'approve'])->middleware('permission:employee_deductions.approve')->name('employee-deductions.approve');
+    Route::post('/employee-deductions/{employeeDeduction}/cancel', [EmployeeDeductionController::class, 'cancel'])->middleware('permission:employee_deductions.cancel')->name('employee-deductions.cancel');
 
-    Route::get('/employee-suspensions', [EmployeeSuspensionController::class, 'index'])->name('employee-suspensions.index');
-    Route::get('/employee-suspensions/create', [EmployeeSuspensionController::class, 'create'])->name('employee-suspensions.create');
-    Route::post('/employee-suspensions', [EmployeeSuspensionController::class, 'store'])->name('employee-suspensions.store');
-    Route::post('/employee-suspensions/{employeeSuspension}/resume', [EmployeeSuspensionController::class, 'resume'])->name('employee-suspensions.resume');
-    Route::post('/employee-suspensions/{employeeSuspension}/cancel', [EmployeeSuspensionController::class, 'cancel'])->name('employee-suspensions.cancel');
+    Route::get('/employee-suspensions', [EmployeeSuspensionController::class, 'index'])->middleware('permission:employee_suspensions.view')->name('employee-suspensions.index');
+    Route::get('/employee-suspensions/create', [EmployeeSuspensionController::class, 'create'])->middleware('permission:employee_suspensions.create')->name('employee-suspensions.create');
+    Route::post('/employee-suspensions', [EmployeeSuspensionController::class, 'store'])->middleware('permission:employee_suspensions.create')->name('employee-suspensions.store');
+    Route::post('/employee-suspensions/{employeeSuspension}/resume', [EmployeeSuspensionController::class, 'resume'])->middleware('permission:employee_suspensions.resume')->name('employee-suspensions.resume');
+    Route::post('/employee-suspensions/{employeeSuspension}/cancel', [EmployeeSuspensionController::class, 'cancel'])->middleware('permission:employee_suspensions.cancel')->name('employee-suspensions.cancel');
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Phase 3 V3: Salary Advances Select Deduction Months
+    |--------------------------------------------------------------------------
+
+    */
+
+    Route::get('/salary-advances', [SalaryAdvanceController::class, 'index'])->middleware('permission:salary_advances.view')->name('salary-advances.index');
+    Route::get('/salary-advances/create', [SalaryAdvanceController::class, 'create'])->middleware('permission:salary_advances.create')->name('salary-advances.create');
+    Route::post('/salary-advances', [SalaryAdvanceController::class, 'store'])->middleware('permission:salary_advances.create')->name('salary-advances.store');
+    Route::get('/salary-advances/{salaryAdvance}', [SalaryAdvanceController::class, 'show'])->middleware('permission:salary_advances.view')->name('salary-advances.show');
+    Route::get('/salary-advances/{salaryAdvance}/edit', [SalaryAdvanceController::class, 'edit'])->middleware('permission:salary_advances.edit')->name('salary-advances.edit');
+    Route::put('/salary-advances/{salaryAdvance}', [SalaryAdvanceController::class, 'update'])->middleware('permission:salary_advances.edit')->name('salary-advances.update');
+    Route::post('/salary-advances/{salaryAdvance}/approve', [SalaryAdvanceController::class, 'approve'])->middleware('permission:salary_advances.approve')->name('salary-advances.approve');
+    Route::post('/salary-advances/{salaryAdvance}/cancel', [SalaryAdvanceController::class, 'cancel'])->middleware('permission:salary_advances.cancel')->name('salary-advances.cancel');
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Phase 4: Payroll Periods & Salary Calculation
+    |--------------------------------------------------------------------------
+
+    */
+
+    Route::get('/payroll-periods', [PayrollPeriodController::class, 'index'])
+        ->middleware('permission:payroll_periods.view')
+        ->name('payroll-periods.index');
+
+    Route::get('/payroll-periods/create', [PayrollPeriodController::class, 'create'])
+        ->middleware('permission:payroll_periods.create')
+        ->name('payroll-periods.create');
+
+    Route::post('/payroll-periods', [PayrollPeriodController::class, 'store'])
+        ->middleware('permission:payroll_periods.create')
+        ->name('payroll-periods.store');
+
+    Route::get('/payroll-periods/{payrollPeriod}', [PayrollPeriodController::class, 'show'])
+        ->middleware('permission:payroll_periods.view')
+        ->name('payroll-periods.show');
+
+    Route::post('/payroll-periods/{payrollPeriod}/calculate', [PayrollPeriodController::class, 'calculate'])
+        ->middleware('permission:payroll_periods.calculate')
+        ->name('payroll-periods.calculate');
+
+    Route::post('/payroll-periods/{payrollPeriod}/approve', [PayrollPeriodController::class, 'approve'])
+        ->middleware('permission:payroll_periods.approve')
+        ->name('payroll-periods.approve');
+
+    Route::post('/payroll-periods/{payrollPeriod}/mark-paid', [PayrollPeriodController::class, 'markAsPaid'])
+        ->middleware('permission:payroll_periods.pay')
+        ->name('payroll-periods.mark-paid');
+
+    Route::delete('/payroll-periods/{payrollPeriod}', [PayrollPeriodController::class, 'destroy'])
+        ->middleware('permission:payroll_periods.delete')
+        ->name('payroll-periods.destroy');
+
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payroll Reports & Payslips Routes
+    |--------------------------------------------------------------------------
+
+    */
+
+    Route::get('/payroll-reports', [PayrollReportController::class, 'index'])
+        ->middleware('permission:payroll_reports.view')
+        ->name('payroll-reports.index');
+
+    Route::get('/payroll-reports/periods/{payrollPeriod}', [PayrollReportController::class, 'show'])
+        ->middleware('permission:payroll_reports.view')
+        ->name('payroll-reports.show');
+
+    Route::get('/payroll-reports/periods/{payrollPeriod}/export-excel', [PayrollReportController::class, 'exportExcel'])
+        ->middleware('permission:payroll_reports.export')
+        ->name('payroll-reports.export-excel');
+
+    Route::get('/payroll-reports/periods/{payrollPeriod}/print-pdf', [PayrollReportController::class, 'printPdf'])
+        ->middleware('permission:payroll_reports.export')
+        ->name('payroll-reports.print-pdf');
+
+    Route::get('/payroll-reports/items/{payrollItem}/payslip', [PayrollReportController::class, 'payslip'])
+        ->middleware('permission:payroll_reports.payslip')
+        ->name('payroll-reports.payslip');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Salary Payment Methods Routes
+    |--------------------------------------------------------------------------
+
+    */
+
+    Route::resource('salary-payment-methods', SalaryPaymentMethodController::class)
+        ->except(['show'])
+        ->middleware([
+            'index' => 'permission:salary_payment_methods.view',
+            'create' => 'permission:salary_payment_methods.create',
+            'store' => 'permission:salary_payment_methods.create',
+            'edit' => 'permission:salary_payment_methods.edit',
+            'update' => 'permission:salary_payment_methods.edit',
+            'destroy' => 'permission:salary_payment_methods.delete',
+        ]);
+
+    /*
+       |--------------------------------------------------------------------------
+       | مركز التكلفه ومجموعات الرواتب
+
+       |--------------------------------------------------------------------------
+       */
+
+
+    Route::resource('payroll-groups', PayrollGroupController::class)
+        ->except(['show'])
+        ->middleware([
+            'index' => 'permission:payroll_groups.view',
+            'create' => 'permission:payroll_groups.create',
+            'store' => 'permission:payroll_groups.create',
+            'edit' => 'permission:payroll_groups.edit',
+            'update' => 'permission:payroll_groups.edit',
+            'destroy' => 'permission:payroll_groups.delete',
+        ]);
+
+    Route::resource('cost-centers', CostCenterController::class)
+        ->except(['show'])
+        ->middleware([
+            'index' => 'permission:cost_centers.view',
+            'create' => 'permission:cost_centers.create',
+            'store' => 'permission:cost_centers.create',
+            'edit' => 'permission:cost_centers.edit',
+            'update' => 'permission:cost_centers.edit',
+            'destroy' => 'permission:cost_centers.delete',
+        ]);
 
 
     /*

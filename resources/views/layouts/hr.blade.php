@@ -147,6 +147,30 @@
             box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
         }
 
+        .payroll-summary {
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .payroll-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .payroll-arrow {
+            margin-right: auto;
+            width: auto !important;
+            height: auto !important;
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            transition: .25s;
+        }
+
+        details[open] .payroll-arrow {
+            transform: rotate(180deg);
+        }
+
         .settings-title i {
             width: 34px;
             height: 34px;
@@ -643,11 +667,85 @@
                 </a>
             @endif
 
-            @if(auth()->user()->hasPermission('payrolls.view'))
-                <a href="{{ route('payrolls.index') }}" class="{{ request()->routeIs('payrolls.*') ? 'active' : '' }}">
-                    <i class="fas fa-money-bill-wave"></i>
-                    الرواتب
-                </a>
+            {{-- Payroll sidebar dropdown - Permission Ready --}}
+            @if(
+                auth()->user()->hasPermission('payroll_periods.view') ||
+                auth()->user()->hasPermission('payroll_reports.view') ||
+                auth()->user()->hasPermission('salary_advances.view') ||
+                auth()->user()->hasPermission('employee_deductions.view') ||
+                auth()->user()->hasPermission('employee_suspensions.view')
+            )
+                <details class="settings-group"
+                    {{ request()->routeIs('payroll-periods.*') ||
+                       request()->routeIs('payroll-reports.*') ||
+                       request()->routeIs('salary-advances.*') ||
+                       request()->routeIs('employee-deductions.*') ||
+                       request()->routeIs('employee-suspensions.*') ? 'open' : '' }}>
+
+                    <summary class="settings-title payroll-summary">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>الرواتب</span>
+                        <i class="fas fa-chevron-down payroll-arrow"></i>
+                    </summary>
+
+                    <div class="settings-submenu">
+                        @if(auth()->user()->hasPermission('payroll_periods.view'))
+                            <a href="{{ route('payroll-periods.index') }}" class="{{ request()->routeIs('payroll-periods.*') ? 'active' : '' }}">
+                                <i class="fas fa-money-check-dollar"></i>
+                                <span>مسير الرواتب</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('payroll_reports.view'))
+                            <a href="{{ route('payroll-reports.index') }}" class="{{ request()->routeIs('payroll-reports.*') ? 'active' : '' }}">
+                                <i class="fas fa-chart-pie"></i>
+                                <span>تقارير الرواتب</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('salary_advances.view'))
+                            <a href="{{ route('salary-advances.index') }}" class="{{ request()->routeIs('salary-advances.*') ? 'active' : '' }}">
+                                <i class="fas fa-hand-holding-dollar"></i>
+                                <span>سلف الموظفين</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('employee_deductions.view'))
+                            <a href="{{ route('employee-deductions.index') }}" class="{{ request()->routeIs('employee-deductions.*') ? 'active' : '' }}">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span>استقطاعات الموظفين</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('employee_suspensions.view'))
+                            <a href="{{ route('employee-suspensions.index') }}" class="{{ request()->routeIs('employee-suspensions.*') ? 'active' : '' }}">
+                                <i class="fas fa-user-slash"></i>
+                                <span>إيقافات الموظفين</span>
+                            </a>
+                        @endif
+
+                            @if(auth()->user()->hasPermission('salary_payment_methods.view'))
+                                <a href="{{ route('salary-payment-methods.index') }}" class="{{ request()->routeIs('salary-payment-methods.*') ? 'active' : '' }}">
+                                    <i class="fas fa-money-check-dollar"></i>
+                                    <span>طرق صرف الراتب</span>
+                                </a>
+                            @endif
+                            @if(auth()->user()->hasPermission('payroll_groups.view'))
+                                <a href="{{ route('payroll-groups.index') }}" class="{{ request()->routeIs('payroll-groups.*') ? 'active' : '' }}">
+                                    <i class="fas fa-users-gear"></i>
+                                    <span>مجموعات الرواتب</span>
+                                </a>
+                            @endif
+
+                            @if(auth()->user()->hasPermission('cost_centers.view'))
+                                <a href="{{ route('cost-centers.index') }}" class="{{ request()->routeIs('cost-centers.*') ? 'active' : '' }}">
+                                    <i class="fas fa-building-circle-check"></i>
+                                    <span>مراكز التكلفة</span>
+                                </a>
+                            @endif
+
+                    </div>
+                </details>
             @endif
 
             @if(auth()->user()->hasPermission('reports.view'))
@@ -689,18 +787,18 @@
                                 <span>المستخدمين</span>
                             </a>
                         @endif
-                            @if(auth()->user()->hasPermission('leave_requests.manager_approval'))
-                                <a href="{{ route('manager-leave-approvals.index') }}" class="sidebar-link">
-                                    <i class="fas fa-user-check"></i>
-                                    <span>موافقات المدير المباشر</span>
-                                </a>
-                            @endif
-                            @if(auth()->user()->hasPermission('leave_requests.hr_approval'))
-                                <a href="{{ route('hr-leave-approvals.index') }}" class="sidebar-link">
-                                    <i class="fas fa-user-shield"></i>
-                                    <span>موافقات الموارد البشرية</span>
-                                </a>
-                            @endif
+                        @if(auth()->user()->hasPermission('leave_requests.manager_approval'))
+                            <a href="{{ route('manager-leave-approvals.index') }}" class="sidebar-link">
+                                <i class="fas fa-user-check"></i>
+                                <span>موافقات المدير المباشر</span>
+                            </a>
+                        @endif
+                        @if(auth()->user()->hasPermission('leave_requests.hr_approval'))
+                            <a href="{{ route('hr-leave-approvals.index') }}" class="sidebar-link">
+                                <i class="fas fa-user-shield"></i>
+                                <span>موافقات الموارد البشرية</span>
+                            </a>
+                        @endif
 
                         @if(auth()->user()->hasPermission('roles.view'))
                             <a href="{{ route('roles.index') }}" class="{{ request()->routeIs('roles.*') ? 'active' : '' }}">
@@ -715,18 +813,18 @@
                                 <span>الجنسيات</span>
                             </a>
                         @endif
-                            @if(auth()->user()->hasPermission('leave_types.view'))
-                                <a href="{{ route('leave-types.index') }}" class="{{ request()->routeIs('leave-types.*') ? 'active' : '' }}">
-                                    <i class="fas fa-list-check"></i>
-                                    <span>أنواع الإجازات</span>
-                                </a>
-                            @endif
-                            @if(auth()->user()->hasPermission('official_holidays.view'))
-                                <a href="{{ route('official-holidays.index') }}" class="{{ request()->routeIs('official-holidays.*') ? 'active' : '' }}">
-                                    <i class="fas fa-calendar-star"></i>
-                                    <span>الإجازات الرسمية</span>
-                                </a>
-                            @endif
+                        @if(auth()->user()->hasPermission('leave_types.view'))
+                            <a href="{{ route('leave-types.index') }}" class="{{ request()->routeIs('leave-types.*') ? 'active' : '' }}">
+                                <i class="fas fa-list-check"></i>
+                                <span>أنواع الإجازات</span>
+                            </a>
+                        @endif
+                        @if(auth()->user()->hasPermission('official_holidays.view'))
+                            <a href="{{ route('official-holidays.index') }}" class="{{ request()->routeIs('official-holidays.*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-star"></i>
+                                <span>الإجازات الرسمية</span>
+                            </a>
+                        @endif
 
                         @if(auth()->user()->hasPermission('leave_policies.view'))
                             <a href="{{ route('leave-policies.index') }}" class="{{ request()->routeIs('leave-policies.*') ? 'active' : '' }}">
@@ -872,6 +970,34 @@
         a.download = "table-data.doc";
         a.click();
     }
+
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const sidebar = document.querySelector(".sidebar");
+
+        if (!sidebar) {
+            return;
+        }
+
+        const savedScroll = sessionStorage.getItem("sidebar_scroll_top");
+
+        if (savedScroll !== null) {
+            sidebar.scrollTop = parseInt(savedScroll, 10);
+        }
+
+        sidebar.addEventListener("scroll", function () {
+            sessionStorage.setItem("sidebar_scroll_top", sidebar.scrollTop);
+        });
+
+        const sidebarLinks = sidebar.querySelectorAll("a");
+
+        sidebarLinks.forEach(function (link) {
+            link.addEventListener("click", function () {
+                sessionStorage.setItem("sidebar_scroll_top", sidebar.scrollTop);
+            });
+        });
+    });
 </script>
 </body>
 </html>

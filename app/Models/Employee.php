@@ -43,12 +43,15 @@ class Employee extends Model
         'iban',
 
         // بيانات نظام الرواتب ومسير الرواتب
+        'salary_payment_method_id',
         'salary_payment_method',
         'payroll_status',
         'salary_effective_date',
         'bank_account_name',
         'payroll_group',
         'cost_center',
+        'payroll_group_id',
+        'cost_center_id',
 
         'status',
         'notes',
@@ -60,6 +63,9 @@ class Employee extends Model
         'salary_effective_date' => 'date',
         'portal_registered_at' => 'datetime',
         'portal_last_login_at' => 'datetime',
+        'salary_payment_method_id' => 'integer',
+        'payroll_group_id' => 'integer',
+        'cost_center_id' => 'integer',
         'basic_salary' => 'decimal:2',
         'housing_allowance' => 'decimal:2',
         'transport_allowance' => 'decimal:2',
@@ -89,6 +95,23 @@ class Employee extends Model
                 $employee->payroll_status = 'included';
             }
 
+            /*
+             * النظام الجديد:
+             * طريقة صرف الراتب أصبحت ديناميكية عبر salary_payment_method_id.
+             * نضع "تحويل بنكي" كافتراضي إذا لم يتم اختيار طريقة صرف.
+             */
+            if (empty($employee->salary_payment_method_id)) {
+                $defaultPaymentMethod = SalaryPaymentMethod::where('code', 'bank_transfer')->first();
+
+                if ($defaultPaymentMethod) {
+                    $employee->salary_payment_method_id = $defaultPaymentMethod->id;
+                }
+            }
+
+            /*
+             * الحقل القديم salary_payment_method أبقيناه مؤقتًا للتوافق مع الأكواد القديمة.
+             * لاحقًا يمكن حذفه بعد التأكد أن كل النظام يستخدم salary_payment_method_id.
+             */
             if (empty($employee->salary_payment_method)) {
                 $employee->salary_payment_method = 'bank_transfer';
             }
@@ -103,6 +126,38 @@ class Employee extends Model
 
             if ($fullName !== '') {
                 $employee->full_name = $fullName;
+            }
+
+            /*
+             * مزامنة الحقل القديم salary_payment_method مع الجدول الديناميكي.
+             * هذا يمنع تعارض البيانات أثناء فترة الانتقال.
+             */
+            if (!empty($employee->salary_payment_method_id)) {
+                $paymentMethod = SalaryPaymentMethod::find($employee->salary_payment_method_id);
+
+                if ($paymentMethod) {
+                    $employee->salary_payment_method = $paymentMethod->code;
+                }
+            }
+
+            /*
+             * مزامنة الحقول النصية القديمة payroll_group و cost_center
+             * مع الجداول الديناميكية الجديدة حتى لا تتأثر الأكواد القديمة أثناء الانتقال.
+             */
+            if (!empty($employee->payroll_group_id)) {
+                $payrollGroup = PayrollGroup::find($employee->payroll_group_id);
+
+                if ($payrollGroup) {
+                    $employee->payroll_group = $payrollGroup->name_ar;
+                }
+            }
+
+            if (!empty($employee->cost_center_id)) {
+                $costCenter = CostCenter::find($employee->cost_center_id);
+
+                if ($costCenter) {
+                    $employee->cost_center = $costCenter->code;
+                }
             }
         });
 
@@ -187,6 +242,39 @@ class Employee extends Model
             + (float) ($this->other_allowance ?? 0);
     }
 
+    public function getSalaryPaymentMethodNameAttribute()
+    {
+        if ($this->salaryPaymentMethod) {
+            return $this->salaryPaymentMethod->name_ar;
+        }
+
+        return match ($this->salary_payment_method) {
+            'bank_transfer' => 'تحويل بنكي',
+            'cash' => 'نقدي',
+            'cheque' => 'شيك',
+            'other' => 'أخرى',
+            default => $this->salary_payment_method ?: '-',
+        };
+    }
+
+    public function getPayrollGroupNameAttribute()
+    {
+        if ($this->payrollGroup) {
+            return $this->payrollGroup->name_ar;
+        }
+
+        return $this->payroll_group ?: '-';
+    }
+
+    public function getCostCenterNameAttribute()
+    {
+        if ($this->costCenter) {
+            return trim(($this->costCenter->code ?? '') . ' - ' . ($this->costCenter->name_ar ?? ''), ' -');
+        }
+
+        return $this->cost_center ?: '-';
+    }
+
     public function department()
     {
         return $this->belongsTo(Department::class);
@@ -207,6 +295,21 @@ class Employee extends Model
         return $this->belongsTo(User::class, 'direct_manager_user_id');
     }
 
+    public function salaryPaymentMethod()
+    {
+        return $this->belongsTo(SalaryPaymentMethod::class);
+    }
+
+    public function payrollGroup()
+    {
+        return $this->belongsTo(PayrollGroup::class);
+    }
+
+    public function costCenter()
+    {
+        return $this->belongsTo(CostCenter::class);
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class);
@@ -220,6 +323,17 @@ class Employee extends Model
     public function payrolls()
     {
         return $this->hasMany(Payroll::class);
+    }
+
+    // سجلات مسير الرواتب الجديدة من Payroll Phase 4/5
+    public function payrollItems()
+    {
+        return $this->hasMany(PayrollItem::class);
+    }
+
+    public function latestPayrollItem()
+    {
+        return $this->hasOne(PayrollItem::class)->latestOfMany();
     }
 
     public function iqamas()
@@ -275,6 +389,16 @@ class Employee extends Model
     public function activeSuspensions()
     {
         return $this->hasMany(EmployeeSuspension::class)->where('status', 'active');
+    }
+
+    public function salaryAdvances()
+    {
+        return $this->hasMany(SalaryAdvance::class);
+    }
+
+    public function salaryAdvanceInstallments()
+    {
+        return $this->hasMany(SalaryAdvanceInstallment::class);
     }
 
     public function leaveBalances()

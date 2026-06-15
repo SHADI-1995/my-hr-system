@@ -9,6 +9,9 @@ use App\Models\Nationality;
 use App\Models\EmployeeIqama;
 use App\Models\EmployeePassport;
 use App\Models\EmployeeHealthCard;
+use App\Models\SalaryPaymentMethod;
+use App\Models\PayrollGroup;
+use App\Models\CostCenter;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +31,10 @@ class EmployeeController extends Controller
             'latestPassport',
             'latestHealthCard',
             'directManagerUser',
+            'salaryPaymentMethod',
+            'payrollGroup',
+            'costCenter',
+            'latestPayrollItem.payrollPeriod',
         ]);
 
         if ($request->search) {
@@ -75,12 +82,29 @@ class EmployeeController extends Controller
         $positions = Position::where('is_active', 1)->orderBy('title')->get();
         $nationalities = Nationality::where('is_active', 1)->orderBy('name_ar')->get();
         $directManagers = User::orderBy('name')->get();
+        $salaryPaymentMethods = SalaryPaymentMethod::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
+
+        $payrollGroups = PayrollGroup::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
+
+        $costCenters = CostCenter::where('is_active', 1)
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
 
         return view('employees.create', compact(
             'departments',
             'positions',
             'nationalities',
-            'directManagers'
+            'directManagers',
+            'salaryPaymentMethods',
+            'payrollGroups',
+            'costCenters'
         ));
     }
 
@@ -122,6 +146,13 @@ class EmployeeController extends Controller
             'bank_name' => 'nullable|string|max:255',
             'iban' => 'nullable|string|max:34',
 
+            'salary_payment_method_id' => 'nullable|exists:salary_payment_methods,id',
+            'payroll_status' => 'nullable|in:included,excluded',
+            'salary_effective_date' => 'nullable|date',
+            'bank_account_name' => 'nullable|string|max:255',
+            'payroll_group_id' => 'nullable|exists:payroll_groups,id',
+            'cost_center_id' => 'nullable|exists:cost_centers,id',
+
             'status' => 'nullable|in:active,inactive,terminated',
             'notes' => 'nullable|string',
 
@@ -150,6 +181,11 @@ class EmployeeController extends Controller
             'employee_number.unique' => 'رقم الموظف مستخدم من قبل',
             'email.email' => 'صيغة البريد الإلكتروني غير صحيحة',
             'email.unique' => 'البريد الإلكتروني مستخدم من قبل',
+            'salary_payment_method_id.exists' => 'طريقة صرف الراتب المحددة غير صحيحة',
+            'payroll_group_id.exists' => 'مجموعة الرواتب المحددة غير صحيحة',
+            'cost_center_id.exists' => 'مركز التكلفة المحدد غير صحيح',
+            'payroll_status.in' => 'حالة الموظف في مسير الرواتب غير صحيحة',
+            'salary_effective_date.date' => 'تاريخ سريان الراتب غير صحيح',
             'first_name.required' => 'الاسم الأول مطلوب',
             'department_id.required' => 'القسم مطلوب',
             'position_id.required' => 'الوظيفة مطلوبة',
@@ -206,6 +242,13 @@ class EmployeeController extends Controller
 
                 'bank_name' => $request->bank_name,
                 'iban' => $request->iban,
+
+                'salary_payment_method_id' => $request->salary_payment_method_id,
+                'payroll_status' => $request->payroll_status ?? 'included',
+                'salary_effective_date' => $request->salary_effective_date ?: $request->hire_date,
+                'bank_account_name' => $request->bank_account_name,
+                'payroll_group_id' => $request->payroll_group_id,
+                'cost_center_id' => $request->cost_center_id,
 
                 'status' => $request->status ?? 'active',
                 'notes' => $request->notes,
@@ -285,6 +328,10 @@ class EmployeeController extends Controller
             'healthCards',
             'salaryHistories.changedBy',
             'directManagerUser',
+            'salaryPaymentMethod',
+            'payrollGroup',
+            'costCenter',
+            'latestPayrollItem.payrollPeriod',
         ]);
 
         return view('employees.show', compact('employee'));
@@ -299,19 +346,58 @@ class EmployeeController extends Controller
             'latestPassport',
             'latestHealthCard',
             'directManagerUser',
+            'salaryPaymentMethod',
+            'payrollGroup',
+            'costCenter',
+            'latestPayrollItem.payrollPeriod',
         ]);
 
         $departments = Department::where('is_active', 1)->orderBy('name')->get();
         $positions = Position::where('is_active', 1)->orderBy('title')->get();
         $nationalities = Nationality::where('is_active', 1)->orderBy('name_ar')->get();
         $directManagers = User::orderBy('name')->get();
+        $salaryPaymentMethods = SalaryPaymentMethod::where(function ($query) use ($employee) {
+            $query->where('is_active', 1);
+
+            if ($employee->salary_payment_method_id) {
+                $query->orWhere('id', $employee->salary_payment_method_id);
+            }
+        })
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
+
+        $payrollGroups = PayrollGroup::where(function ($query) use ($employee) {
+            $query->where('is_active', 1);
+
+            if ($employee->payroll_group_id) {
+                $query->orWhere('id', $employee->payroll_group_id);
+            }
+        })
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
+
+        $costCenters = CostCenter::where(function ($query) use ($employee) {
+            $query->where('is_active', 1);
+
+            if ($employee->cost_center_id) {
+                $query->orWhere('id', $employee->cost_center_id);
+            }
+        })
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
 
         return view('employees.edit', compact(
             'employee',
             'departments',
             'positions',
             'nationalities',
-            'directManagers'
+            'directManagers',
+            'salaryPaymentMethods',
+            'payrollGroups',
+            'costCenters'
         ));
     }
 
@@ -361,6 +447,13 @@ class EmployeeController extends Controller
             'bank_name' => 'nullable|string|max:255',
             'iban' => 'nullable|string|max:34',
 
+            'salary_payment_method_id' => 'nullable|exists:salary_payment_methods,id',
+            'payroll_status' => 'nullable|in:included,excluded',
+            'salary_effective_date' => 'nullable|date',
+            'bank_account_name' => 'nullable|string|max:255',
+            'payroll_group_id' => 'nullable|exists:payroll_groups,id',
+            'cost_center_id' => 'nullable|exists:cost_centers,id',
+
             'status' => 'nullable|in:active,inactive,terminated',
             'notes' => 'nullable|string',
 
@@ -388,6 +481,11 @@ class EmployeeController extends Controller
         ], [
             'employee_number.unique' => 'رقم الموظف مستخدم من قبل',
             'email.unique' => 'البريد الإلكتروني مستخدم من قبل',
+            'salary_payment_method_id.exists' => 'طريقة صرف الراتب المحددة غير صحيحة',
+            'payroll_group_id.exists' => 'مجموعة الرواتب المحددة غير صحيحة',
+            'cost_center_id.exists' => 'مركز التكلفة المحدد غير صحيح',
+            'payroll_status.in' => 'حالة الموظف في مسير الرواتب غير صحيحة',
+            'salary_effective_date.date' => 'تاريخ سريان الراتب غير صحيح',
             'direct_manager_user_id.exists' => 'المدير المباشر المحدد غير صحيح',
 
             'iqama_number.unique' => 'رقم الإقامة مستخدم من قبل',
@@ -498,6 +596,18 @@ class EmployeeController extends Controller
 
             if (auth()->user()->hasPermission('employees.edit.iban')) {
                 $data['iban'] = $request->iban;
+            }
+
+            if (auth()->user()->hasPermission('employees.edit.bank_name') || auth()->user()->hasPermission('employees.edit.iban')) {
+                $data['bank_account_name'] = $request->bank_account_name;
+            }
+
+            if (auth()->user()->hasPermission('employees.edit.basic_salary')) {
+                $data['salary_payment_method_id'] = $request->salary_payment_method_id;
+                $data['payroll_status'] = $request->payroll_status ?? 'included';
+                $data['salary_effective_date'] = $request->salary_effective_date;
+                $data['payroll_group_id'] = $request->payroll_group_id;
+                $data['cost_center_id'] = $request->cost_center_id;
             }
 
             if (auth()->user()->hasPermission('employees.edit.status')) {

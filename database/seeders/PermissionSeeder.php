@@ -578,6 +578,350 @@ class PermissionSeeder extends Seeder
             ['name' => 'تصدير متابعة الوثائق', 'code' => 'documents.export', 'module' => 'documents'],
 
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | Employee Deductions
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض استقطاعات الموظفين',
+                'code' => 'employee_deductions.view',
+                'module' => 'employee_deductions',
+            ],
+            [
+                'name' => 'إضافة استقطاع موظف',
+                'code' => 'employee_deductions.create',
+                'module' => 'employee_deductions',
+            ],
+            [
+                'name' => 'اعتماد استقطاع موظف',
+                'code' => 'employee_deductions.approve',
+                'module' => 'employee_deductions',
+            ],
+            [
+                'name' => 'إلغاء استقطاع موظف',
+                'code' => 'employee_deductions.cancel',
+                'module' => 'employee_deductions',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Employee Suspensions
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض إيقافات الموظفين',
+                'code' => 'employee_suspensions.view',
+                'module' => 'employee_suspensions',
+            ],
+            [
+                'name' => 'إضافة إيقاف موظف',
+                'code' => 'employee_suspensions.create',
+                'module' => 'employee_suspensions',
+            ],
+            [
+                'name' => 'استئناف موظف موقوف',
+                'code' => 'employee_suspensions.resume',
+                'module' => 'employee_suspensions',
+            ],
+            [
+                'name' => 'إلغاء إيقاف موظف',
+                'code' => 'employee_suspensions.cancel',
+                'module' => 'employee_suspensions',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Salary Advances
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض سلف الموظفين',
+                'code' => 'salary_advances.view',
+                'module' => 'salary_advances',
+            ],
+            [
+                'name' => 'إضافة سلفة موظف',
+                'code' => 'salary_advances.create',
+                'module' => 'salary_advances',
+            ],
+            [
+                'name' => 'تعديل سلفة موظف',
+                'code' => 'salary_advances.edit',
+                'module' => 'salary_advances',
+            ],
+            [
+                'name' => 'اعتماد سلفة موظف',
+                'code' => 'salary_advances.approve',
+                'module' => 'salary_advances',
+            ],
+            [
+                'name' => 'إلغاء سلفة موظف',
+                'code' => 'salary_advances.cancel',
+                'module' => 'salary_advances',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Payroll Periods & Salary Calculation
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض فترات مسير الرواتب',
+                'code' => 'payroll_periods.view',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'إنشاء فترة مسير رواتب',
+                'code' => 'payroll_periods.create',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'احتساب مسير الرواتب',
+                'code' => 'payroll_periods.calculate',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'اعتماد مسير الرواتب',
+                'code' => 'payroll_periods.approve',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'صرف مسير الرواتب',
+                'code' => 'payroll_periods.pay',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'حذف فترة مسير الرواتب',
+                'code' => 'payroll_periods.delete',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'عرض تفاصيل رواتب الموظفين داخل المسير',
+                'code' => 'payroll_items.view',
+                'module' => 'payroll_periods',
+            ],
+            [
+                'name' => 'عرض تفاصيل مكونات راتب الموظف داخل المسير',
+                'code' => 'payroll_items.components.view',
+                'module' => 'payroll_periods',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Leave Types Payroll Settings
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض إعدادات تأثير الإجازات على الرواتب',
+                'code' => 'leave_types.payroll_settings.view',
+                'module' => 'leave_types',
+            ],
+            [
+                'name' => 'تعديل إعدادات تأثير الإجازات على الرواتب',
+                'code' => 'leave_types.payroll_settings.edit',
+                'module' => 'leave_types',
+            ],
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Payroll Reports & Payslips
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'عرض تقارير الرواتب',
+                'code' => 'payroll_reports.view',
+                'module' => 'payroll_reports',
+            ],
+            [
+                'name' => 'تصدير تقارير الرواتب',
+                'code' => 'payroll_reports.export',
+                'module' => 'payroll_reports',
+            ],
+            [
+                'name' => 'عرض وطباعة قسائم الرواتب',
+                'code' => 'payroll_reports.payslip',
+                'module' => 'payroll_reports',
+            ],
+
+            /*
+|--------------------------------------------------------------------------
+| Salary Payment Methods
+|--------------------------------------------------------------------------
+*/
+            [
+                'name' => 'عرض طرق صرف الراتب',
+                'code' => 'salary_payment_methods.view',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'إضافة طريقة صرف راتب',
+                'code' => 'salary_payment_methods.create',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل طريقة صرف راتب',
+                'code' => 'salary_payment_methods.edit',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'حذف طريقة صرف راتب',
+                'code' => 'salary_payment_methods.delete',
+                'module' => 'salary_payment_methods',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Salary Payment Methods Field Permissions
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'تعديل الاسم العربي لطريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.name_ar',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل الاسم الإنجليزي لطريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.name_en',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل كود طريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.code',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل حالة طريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.is_active',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل ترتيب طريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.sort_order',
+                'module' => 'salary_payment_methods',
+            ],
+            [
+                'name' => 'تعديل ملاحظات طريقة صرف الراتب',
+                'code' => 'salary_payment_methods.edit.notes',
+                'module' => 'salary_payment_methods',
+            ],
+
+            [
+                'name' => 'عرض مجموعات الرواتب',
+                'code' => 'payroll_groups.view',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'إضافة مجموعات الرواتب',
+                'code' => 'payroll_groups.create',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل مجموعات الرواتب',
+                'code' => 'payroll_groups.edit',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'حذف مجموعات الرواتب',
+                'code' => 'payroll_groups.delete',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الاسم العربي في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.name_ar',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الاسم الإنجليزي في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.name_en',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الكود في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.code',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الحالة في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.is_active',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الترتيب في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.sort_order',
+                'module' => 'payroll_groups',
+            ],
+            [
+                'name' => 'تعديل الملاحظات في مجموعات الرواتب',
+                'code' => 'payroll_groups.edit.notes',
+                'module' => 'payroll_groups',
+            ],
+
+
+
+
+            /*
+                        |--------------------------------------------------------------------------
+                        | مركز التكلفه ومجموعه الرواتب
+                        |--------------------------------------------------------------------------
+                        */
+
+            [
+                'name' => 'عرض مراكز التكلفة',
+                'code' => 'cost_centers.view',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'إضافة مراكز التكلفة',
+                'code' => 'cost_centers.create',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل مراكز التكلفة',
+                'code' => 'cost_centers.edit',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'حذف مراكز التكلفة',
+                'code' => 'cost_centers.delete',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الاسم العربي في مراكز التكلفة',
+                'code' => 'cost_centers.edit.name_ar',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الاسم الإنجليزي في مراكز التكلفة',
+                'code' => 'cost_centers.edit.name_en',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الكود في مراكز التكلفة',
+                'code' => 'cost_centers.edit.code',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الحالة في مراكز التكلفة',
+                'code' => 'cost_centers.edit.is_active',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الترتيب في مراكز التكلفة',
+                'code' => 'cost_centers.edit.sort_order',
+                'module' => 'cost_centers',
+            ],
+            [
+                'name' => 'تعديل الملاحظات في مراكز التكلفة',
+                'code' => 'cost_centers.edit.notes',
+                'module' => 'cost_centers',
+            ],
+
+
             /*
                         |--------------------------------------------------------------------------
                         | audit_logs

@@ -117,10 +117,19 @@ class LeaveTypeController extends Controller
             'requires_approval' => 'nullable|boolean',
             'auto_approved' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
+
+            // إعدادات تأثير نوع الإجازة على مسير الرواتب
+            'affects_payroll' => 'nullable|boolean',
+            'salary_percentage' => 'required|numeric|min:0|max:100',
+            'payroll_policy_note' => 'nullable|string',
         ], [
             'name.required' => 'اسم نوع الإجازة مطلوب',
             'code.required' => 'كود نوع الإجازة مطلوب',
             'code.unique' => 'كود نوع الإجازة موجود مسبقًا',
+            'salary_percentage.required' => 'نسبة الراتب أثناء الإجازة مطلوبة',
+            'salary_percentage.numeric' => 'نسبة الراتب أثناء الإجازة يجب أن تكون رقم',
+            'salary_percentage.min' => 'نسبة الراتب أثناء الإجازة لا يمكن أن تكون أقل من 0',
+            'salary_percentage.max' => 'نسبة الراتب أثناء الإجازة لا يمكن أن تكون أكثر من 100',
         ]);
 
         return [
@@ -133,6 +142,11 @@ class LeaveTypeController extends Controller
             'auto_approved' => $request->boolean('auto_approved'),
             'max_days_per_year' => $request->max_days_per_year,
             'is_active' => $request->boolean('is_active'),
+
+            // إعدادات مسير الرواتب
+            'affects_payroll' => $request->boolean('affects_payroll'),
+            'salary_percentage' => $request->salary_percentage ?? 100,
+            'payroll_policy_note' => $request->payroll_policy_note,
         ];
     }
 }

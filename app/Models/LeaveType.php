@@ -19,6 +19,11 @@ class LeaveType extends Model
         'auto_approved',
         'max_days_per_year',
         'is_active',
+
+        // إعدادات تأثير نوع الإجازة على مسير الرواتب
+        'affects_payroll',
+        'salary_percentage',
+        'payroll_policy_note',
     ];
 
     protected $casts = [
@@ -28,6 +33,8 @@ class LeaveType extends Model
         'requires_approval' => 'boolean',
         'auto_approved' => 'boolean',
         'is_active' => 'boolean',
+        'affects_payroll' => 'boolean',
+        'salary_percentage' => 'decimal:2',
     ];
 
     public function leaveRequests()
