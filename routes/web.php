@@ -35,8 +35,8 @@ use App\Http\Controllers\PayrollReportController;
 use App\Http\Controllers\SalaryPaymentMethodController;
 use App\Http\Controllers\PayrollGroupController;
 use App\Http\Controllers\CostCenterController;
-
-
+use App\Http\Controllers\DeductionTypeController;
+use App\Http\Controllers\PayrollSettingController;
 
 
 
@@ -892,6 +892,40 @@ Route::middleware('auth')->group(function () {
             'update' => 'permission:cost_centers.edit',
             'destroy' => 'permission:cost_centers.delete',
         ]);
+
+
+
+
+    /*
+       |--------------------------------------------------------------------------
+       | deduction_types
+       |--------------------------------------------------------------------------
+       */
+
+
+    Route::resource('deduction-types', DeductionTypeController::class)
+        ->except(['show']);
+
+
+    Route::get('employee-deductions/{employeeDeduction}/edit', [EmployeeDeductionController::class, 'edit'])
+        ->name('employee-deductions.edit');
+
+    Route::put('employee-deductions/{employeeDeduction}', [EmployeeDeductionController::class, 'update'])
+        ->name('employee-deductions.update');
+
+    /*
+       |--------------------------------------------------------------------------
+       | payroll_settings
+       |--------------------------------------------------------------------------
+       */
+
+    Route::get('payroll-settings', [PayrollSettingController::class, 'edit'])
+        ->name('payroll-settings.edit');
+
+    Route::put('payroll-settings', [PayrollSettingController::class, 'update'])
+        ->name('payroll-settings.update');
+
+
 
 
     /*

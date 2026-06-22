@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\EmployeeDeduction;
+use App\Models\EmployeeDeductionSchedule;
 use App\Models\EmployeeSuspension;
 use App\Models\LeaveRequest;
 use App\Models\PayrollItem;
@@ -169,8 +170,8 @@ class PayrollPeriodController extends Controller
             $payrollPeriod->items()->delete();
 
             $periodStart = Carbon::parse($payrollPeriod->start_date)->startOfDay();
-            $periodEnd = Carbon::parse($payrollPeriod->end_date)->endOfDay();
-            $periodDays = $periodStart->diffInDays($periodEnd) + 1;
+            $periodEnd = Carbon::parse($payrollPeriod->end_date)->startOfDay();
+            $periodDays = $this->inclusiveDays($periodStart, $periodEnd);
 
             $employees = $this->eligibleEmployees($periodStart, $periodEnd, $payrollPeriod);
 
@@ -343,25 +344,16 @@ class PayrollPeriodController extends Controller
 
     private function eligibleEmployees(Carbon $periodStart, Carbon $periodEnd, PayrollPeriod $payrollPeriod)
     {
+        /*
+         * مهم:
+         * لا نعتمد هنا على فلترة SQL بتواريخ التعيين/نهاية الخدمة فقط؛
+         * لأن أسماء الأعمدة قد تختلف أو تكون بعض القيم غير مهيأة.
+         * لذلك نجلب الموظفين ضمن نطاق مجموعة الرواتب ثم نفلتر فعليًا داخل employmentEligibility().
+         */
         $query = Employee::query()
             ->where(function ($query) {
                 $query->whereNull('payroll_status')
                     ->orWhere('payroll_status', 'included');
-            })
-            ->where(function ($query) use ($periodEnd) {
-                $query->whereNull('hire_date')
-                    ->orWhereDate('hire_date', '<=', $periodEnd->toDateString());
-            })
-            ->where(function ($query) use ($periodStart) {
-                $query->whereNull('termination_date')
-                    ->orWhereDate('termination_date', '>=', $periodStart->toDateString());
-            })
-            ->where(function ($query) use ($periodStart) {
-                $query->whereIn('status', ['active', 'suspended', 'on_leave'])
-                    ->orWhere(function ($q) use ($periodStart) {
-                        $q->whereNotNull('termination_date')
-                            ->whereDate('termination_date', '>=', $periodStart->toDateString());
-                    });
             })
             ->orderBy('full_name');
 
@@ -375,8 +367,13 @@ class PayrollPeriodController extends Controller
             }
         }
 
-        return $query->get();
+        return $query->get()
+            ->filter(function (Employee $employee) use ($periodStart, $periodEnd) {
+                return $this->employmentEligibility($employee, $periodStart, $periodEnd)['eligible'];
+            })
+            ->values();
     }
+
 
     private function payrollGroupConflictMessage(string $month, string $scope, array $selectedGroupIds): ?string
     {
@@ -446,8 +443,30 @@ class PayrollPeriodController extends Controller
 
     private function employmentEligibility(Employee $employee, Carbon $periodStart, Carbon $periodEnd): array
     {
-        $hireDate = $employee->hire_date ? Carbon::parse($employee->hire_date)->startOfDay() : null;
-        $terminationDate = $employee->termination_date ? Carbon::parse($employee->termination_date)->endOfDay() : null;
+        /*
+         * نقرأ تاريخ بداية ونهاية خدمة الموظف بطريقة مرنة.
+         * الأساسي غالبًا: hire_date و termination_date.
+         * وأضفنا بدائل حتى لو كانت الأعمدة عندك باسم مختلف.
+         */
+        $hireDate = $this->employeeDateValue($employee, [
+            'hire_date',
+            'joining_date',
+            'join_date',
+            'start_date',
+            'employment_start_date',
+            'work_start_date',
+            'started_at',
+        ]);
+
+        $terminationDate = $this->employeeDateValue($employee, [
+            'termination_date',
+            'end_of_service_date',
+            'employment_end_date',
+            'work_end_date',
+            'last_working_day',
+            'last_working_date',
+            'resignation_date',
+        ]);
 
         if ($employee->payroll_status === 'excluded') {
             return [
@@ -475,12 +494,30 @@ class PayrollPeriodController extends Controller
                 'payable_days' => 0,
                 'eligible_start_date' => null,
                 'eligible_end_date' => null,
-                'note' => 'مفصول قبل بداية فترة المسير',
+                'note' => 'انتهت خدمته قبل بداية فترة المسير',
             ];
         }
 
-        $eligibleStart = $hireDate && $hireDate->gt($periodStart) ? $hireDate->copy() : $periodStart->copy();
-        $eligibleEnd = $terminationDate && $terminationDate->lt($periodEnd) ? $terminationDate->copy() : $periodEnd->copy();
+        if (
+            in_array((string) ($employee->status ?? ''), ['terminated', 'resigned', 'inactive'], true)
+            && !$terminationDate
+        ) {
+            return [
+                'eligible' => false,
+                'payable_days' => 0,
+                'eligible_start_date' => null,
+                'eligible_end_date' => null,
+                'note' => 'حالة الموظف غير نشطة ولا يوجد تاريخ نهاية خدمة',
+            ];
+        }
+
+        $eligibleStart = $hireDate && $hireDate->gt($periodStart)
+            ? $hireDate->copy()
+            : $periodStart->copy();
+
+        $eligibleEnd = $terminationDate && $terminationDate->lt($periodEnd)
+            ? $terminationDate->copy()
+            : $periodEnd->copy();
 
         if ($eligibleEnd->lt($eligibleStart)) {
             return [
@@ -492,7 +529,7 @@ class PayrollPeriodController extends Controller
             ];
         }
 
-        $days = $eligibleStart->diffInDays($eligibleEnd) + 1;
+        $days = $this->inclusiveDays($eligibleStart, $eligibleEnd);
 
         $note = 'نشط طوال الفترة';
 
@@ -502,6 +539,10 @@ class PayrollPeriodController extends Controller
 
         if ($terminationDate && $terminationDate->betweenIncluded($periodStart, $periodEnd)) {
             $note = 'تم إنهاء خدمته داخل فترة المسير';
+        }
+
+        if ($hireDate && $hireDate->betweenIncluded($periodStart, $periodEnd) && $terminationDate && $terminationDate->betweenIncluded($periodStart, $periodEnd)) {
+            $note = 'تعيين وإنهاء خدمة داخل فترة المسير';
         }
 
         if (($employee->status ?? null) === 'suspended') {
@@ -519,6 +560,42 @@ class PayrollPeriodController extends Controller
             'eligible_end_date' => $eligibleEnd->toDateString(),
             'note' => $note,
         ];
+    }
+
+
+    private function employeeDateValue(Employee $employee, array $columns): ?Carbon
+    {
+        foreach ($columns as $column) {
+            $value = $employee->getAttribute($column);
+
+            if (!$value) {
+                continue;
+            }
+
+            try {
+                return Carbon::parse($value)->startOfDay();
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    private function inclusiveDays(Carbon $start, Carbon $end): int
+    {
+        $start = $start->copy()->startOfDay();
+        $end = $end->copy()->startOfDay();
+
+        if ($end->lt($start)) {
+            return 0;
+        }
+
+        /*
+         * لا نستخدم endOfDay مع diffInDays لأن ذلك قد يعطي نتيجة غير صحيحة
+         * مثل 32 يوم لشهر مكون من 31 يوم.
+         */
+        return (int) $start->diffInDays($end) + 1;
     }
 
     private function prorate(float $amount, int $payableDays, int $periodDays): float
@@ -555,6 +632,61 @@ class PayrollPeriodController extends Controller
 
     private function calculateRegularDeductions(Employee $employee, float $gross, PayrollPeriod $period): array
     {
+        /*
+         * النظام الجديد للاستقطاعات:
+         * نقرأ من جدول employee_deduction_schedules.
+         * كل سجل يمثل خصم شهر محدد، وهذا يمنع تكرار الخصم ويدعم:
+         * مرة واحدة / شهري / أشهر محددة / أقساط / نسبة.
+         */
+        if (Schema::hasTable('employee_deduction_schedules')) {
+            $schedules = EmployeeDeductionSchedule::query()
+                ->where('employee_id', $employee->id)
+                ->where('payroll_month', $period->month)
+                ->where('status', 'pending')
+                ->with('deduction')
+                ->get();
+
+            $total = 0;
+            $components = [];
+
+            foreach ($schedules as $schedule) {
+                $deduction = $schedule->deduction;
+
+                if (!$deduction || !in_array($deduction->status, ['approved', 'active'], true)) {
+                    continue;
+                }
+
+                $amount = 0;
+
+                if (($deduction->calculation_type ?? null) === 'percentage' || $schedule->percentage !== null) {
+                    $percentage = (float) ($schedule->percentage ?? $deduction->percentage ?? $deduction->amount ?? 0);
+                    $amount = round($gross * ($percentage / 100), 2);
+                } else {
+                    $amount = round((float) $schedule->amount, 2);
+                }
+
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                $total += $amount;
+
+                $components[] = [
+                    'type' => 'deduction',
+                    'name' => 'استقطاع: ' . ($deduction->title ?: $deduction->deduction_type ?: $deduction->deduction_number),
+                    'amount' => $amount,
+                    'source_type' => EmployeeDeductionSchedule::class,
+                    'source_id' => $schedule->id,
+                    'notes' => $deduction->reason,
+                ];
+            }
+
+            return [round($total, 2), $components];
+        }
+
+        /*
+         * توافق احتياطي مع النظام القديم إذا لم يتم تشغيل migration الجديد بعد.
+         */
         $periodStart = Carbon::parse($period->start_date)->startOfDay();
         $periodEnd = Carbon::parse($period->end_date)->endOfDay();
 
@@ -641,6 +773,7 @@ class PayrollPeriodController extends Controller
         return [round($total, 2), $components];
     }
 
+
     private function calculateSalaryAdvances(Employee $employee, PayrollPeriod $period): array
     {
         $installments = SalaryAdvanceInstallment::query()
@@ -694,7 +827,7 @@ class PayrollPeriodController extends Controller
             $start = Carbon::parse($suspension->start_date)->startOfDay()->max($eligibleStart);
 
             $effectiveEnd = $suspension->resume_date
-                ? Carbon::parse($suspension->resume_date)->subDay()->endOfDay()
+                ? Carbon::parse($suspension->resume_date)->subDay()->startOfDay()
                 : $eligibleEnd->copy();
 
             $end = $effectiveEnd->min($eligibleEnd);
@@ -703,7 +836,7 @@ class PayrollPeriodController extends Controller
                 continue;
             }
 
-            $suspensionDays = $start->diffInDays($end) + 1;
+            $suspensionDays = $this->inclusiveDays($start, $end);
             $unpaidPercentage = max(0, 100 - (float) $suspension->salary_percentage);
             $amount = round($dailySalary * $suspensionDays * ($unpaidPercentage / 100), 2);
 
@@ -753,13 +886,13 @@ class PayrollPeriodController extends Controller
             }
 
             $start = Carbon::parse($leave->start_date)->startOfDay()->max($eligibleStart);
-            $end = Carbon::parse($leave->end_date)->endOfDay()->min($eligibleEnd);
+            $end = Carbon::parse($leave->end_date)->startOfDay()->min($eligibleEnd);
 
             if ($end->lt($start)) {
                 continue;
             }
 
-            $leaveDays = $start->diffInDays($end) + 1;
+            $leaveDays = $this->inclusiveDays($start, $end);
             $unpaidPercentage = max(0, 100 - $salaryPercentage);
             $amount = round($dailySalary * $leaveDays * ($unpaidPercentage / 100), 2);
 
@@ -867,6 +1000,44 @@ class PayrollPeriodController extends Controller
 
     private function markCompletedDeductions(PayrollPeriod $period): void
     {
+        /*
+         * النظام الجديد:
+         * عند صرف المسير نحدث جدول employee_deduction_schedules
+         * من pending إلى deducted، ونربطه بالمسير وبسطر الراتب.
+         */
+        if (Schema::hasTable('employee_deduction_schedules')) {
+            $scheduleComponents = PayrollItemComponent::query()
+                ->where('payroll_period_id', $period->id)
+                ->where('source_type', EmployeeDeductionSchedule::class)
+                ->get();
+
+            foreach ($scheduleComponents as $component) {
+                $schedule = EmployeeDeductionSchedule::with('deduction')->find($component->source_id);
+
+                if (!$schedule || $schedule->status !== 'pending') {
+                    continue;
+                }
+
+                $schedule->update([
+                    'status' => 'deducted',
+                    'payroll_period_id' => $period->id,
+                    'payroll_item_id' => $component->payroll_item_id,
+                    'deducted_at' => now(),
+                ]);
+
+                $deduction = $schedule->deduction;
+
+                if ($deduction && !$deduction->schedules()->where('status', 'pending')->exists()) {
+                    $deduction->update(['status' => 'completed']);
+                }
+            }
+
+            return;
+        }
+
+        /*
+         * توافق احتياطي مع النظام القديم.
+         */
         $deductionIds = PayrollItemComponent::query()
             ->where('payroll_period_id', $period->id)
             ->where('source_type', EmployeeDeduction::class)
@@ -902,5 +1073,6 @@ class PayrollPeriodController extends Controller
             }
         }
     }
+
 }
 

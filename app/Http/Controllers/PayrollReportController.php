@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PayrollItem;
 use App\Models\PayrollPeriod;
+use App\Models\PayrollSetting;
 use Illuminate\Http\Request;
 
 class PayrollReportController extends Controller
@@ -11,6 +12,8 @@ class PayrollReportController extends Controller
     public function index(Request $request)
     {
         abort_if(!auth()->user()->hasPermission('payroll_reports.view'), 403);
+
+        $payrollSetting = PayrollSetting::current();
 
         $periodsQuery = PayrollPeriod::query()
             ->latest();
@@ -28,52 +31,45 @@ class PayrollReportController extends Controller
         $selectedPeriod = null;
 
         if ($request->filled('period_id')) {
-            $selectedPeriod = PayrollPeriod::with([
-                'items.employee.department',
-                'items.components',
-                'createdBy',
-                'calculatedBy',
-                'approvedBy',
-                'paidBy',
-            ])->find($request->period_id);
+            $selectedPeriod = PayrollPeriod::with($this->payrollReportRelations())
+                ->find($request->period_id);
         }
 
-        return view('payroll_reports.index', compact('periods', 'selectedPeriod'));
+        return view('payroll_reports.index', compact('periods', 'selectedPeriod', 'payrollSetting'));
     }
 
     public function show(PayrollPeriod $payrollPeriod)
     {
         abort_if(!auth()->user()->hasPermission('payroll_reports.view'), 403);
 
-        $selectedPeriod = $payrollPeriod->load([
-            'items.employee.department',
-            'items.components',
-            'createdBy',
-            'calculatedBy',
-            'approvedBy',
-            'paidBy',
-        ]);
+        $payrollSetting = PayrollSetting::current();
+
+        $selectedPeriod = $payrollPeriod->load($this->payrollReportRelations());
 
         $periods = PayrollPeriod::query()
             ->latest()
             ->paginate(12);
 
-        return view('payroll_reports.index', compact('periods', 'selectedPeriod'));
+        return view('payroll_reports.index', compact('periods', 'selectedPeriod', 'payrollSetting'));
     }
 
     public function exportExcel(PayrollPeriod $payrollPeriod)
     {
         abort_if(!auth()->user()->hasPermission('payroll_reports.export'), 403);
 
-        $payrollPeriod->load([
-            'items.employee.department',
-            'items.components',
-        ]);
+        $payrollSetting = PayrollSetting::current();
+
+        /*
+         * مهم لتقرير Excel:
+         * نحمّل بيانات الموظف الإضافية حتى تظهر:
+         * الجنسية، الوظيفة، طريقة صرف الراتب، مجموعة الرواتب، مركز التكلفة، حالة الموظف.
+         */
+        $payrollPeriod->load($this->payrollReportRelations());
 
         $fileName = 'payroll-report-' . $payrollPeriod->month . '.xls';
 
         return response()
-            ->view('payroll_reports.excel', compact('payrollPeriod'))
+            ->view('payroll_reports.excel', compact('payrollPeriod', 'payrollSetting'))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
     }
@@ -82,29 +78,47 @@ class PayrollReportController extends Controller
     {
         abort_if(!auth()->user()->hasPermission('payroll_reports.export'), 403);
 
-        $payrollPeriod->load([
-            'items.employee.department',
-            'items.components',
-            'createdBy',
-            'calculatedBy',
-            'approvedBy',
-            'paidBy',
-        ]);
+        $payrollSetting = PayrollSetting::current();
 
-        return view('payroll_reports.print_pdf', compact('payrollPeriod'));
+        $payrollPeriod->load($this->payrollReportRelations());
+
+        return view('payroll_reports.print_pdf', compact('payrollPeriod', 'payrollSetting'));
     }
 
     public function payslip(PayrollItem $payrollItem)
     {
         abort_if(!auth()->user()->hasPermission('payroll_reports.payslip'), 403);
 
+        $payrollSetting = PayrollSetting::current();
+
         $payrollItem->load([
             'employee.department',
             'employee.position',
+            'employee.nationality',
+            'employee.payrollGroup',
+            'employee.costCenter',
+            'employee.salaryPaymentMethod',
             'payrollPeriod',
             'components',
         ]);
 
-        return view('payroll_reports.payslip', compact('payrollItem'));
+        return view('payroll_reports.payslip', compact('payrollItem', 'payrollSetting'));
+    }
+
+    private function payrollReportRelations(): array
+    {
+        return [
+            'items.employee.department',
+            'items.employee.position',
+            'items.employee.nationality',
+            'items.employee.payrollGroup',
+            'items.employee.costCenter',
+            'items.employee.salaryPaymentMethod',
+            'items.components',
+            'createdBy',
+            'calculatedBy',
+            'approvedBy',
+            'paidBy',
+        ];
     }
 }

@@ -673,14 +673,16 @@
                 auth()->user()->hasPermission('payroll_reports.view') ||
                 auth()->user()->hasPermission('salary_advances.view') ||
                 auth()->user()->hasPermission('employee_deductions.view') ||
-                auth()->user()->hasPermission('employee_suspensions.view')
+                auth()->user()->hasPermission('employee_suspensions.view') ||
+                auth()->user()->hasPermission('payroll_settings.view')
             )
                 <details class="settings-group"
                     {{ request()->routeIs('payroll-periods.*') ||
                        request()->routeIs('payroll-reports.*') ||
                        request()->routeIs('salary-advances.*') ||
                        request()->routeIs('employee-deductions.*') ||
-                       request()->routeIs('employee-suspensions.*') ? 'open' : '' }}>
+                       request()->routeIs('employee-suspensions.*') ||
+                       request()->routeIs('payroll-settings.*') ? 'open' : '' }}>
 
                     <summary class="settings-title payroll-summary">
                         <i class="fas fa-money-bill-wave"></i>
@@ -724,25 +726,39 @@
                             </a>
                         @endif
 
-                            @if(auth()->user()->hasPermission('salary_payment_methods.view'))
-                                <a href="{{ route('salary-payment-methods.index') }}" class="{{ request()->routeIs('salary-payment-methods.*') ? 'active' : '' }}">
-                                    <i class="fas fa-money-check-dollar"></i>
-                                    <span>طرق صرف الراتب</span>
-                                </a>
-                            @endif
-                            @if(auth()->user()->hasPermission('payroll_groups.view'))
-                                <a href="{{ route('payroll-groups.index') }}" class="{{ request()->routeIs('payroll-groups.*') ? 'active' : '' }}">
-                                    <i class="fas fa-users-gear"></i>
-                                    <span>مجموعات الرواتب</span>
-                                </a>
-                            @endif
+                        @if(auth()->user()->hasPermission('salary_payment_methods.view'))
+                            <a href="{{ route('salary-payment-methods.index') }}" class="{{ request()->routeIs('salary-payment-methods.*') ? 'active' : '' }}">
+                                <i class="fas fa-money-check-dollar"></i>
+                                <span>طرق صرف الراتب</span>
+                            </a>
+                        @endif
 
-                            @if(auth()->user()->hasPermission('cost_centers.view'))
-                                <a href="{{ route('cost-centers.index') }}" class="{{ request()->routeIs('cost-centers.*') ? 'active' : '' }}">
-                                    <i class="fas fa-building-circle-check"></i>
-                                    <span>مراكز التكلفة</span>
-                                </a>
-                            @endif
+                        @can('deduction_types.view')
+                            <a href="{{ route('deduction-types.index') }}" class="submenu-link {{ request()->routeIs('deduction-types.*') ? 'active' : '' }}">
+                                <i class="fas fa-tags"></i>
+                                <span>أنواع الاستقطاعات</span>
+                            </a>
+                        @endcan
+                        @if(auth()->user()->hasPermission('payroll_groups.view'))
+                            <a href="{{ route('payroll-groups.index') }}" class="{{ request()->routeIs('payroll-groups.*') ? 'active' : '' }}">
+                                <i class="fas fa-users-gear"></i>
+                                <span>مجموعات الرواتب</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('cost_centers.view'))
+                            <a href="{{ route('cost-centers.index') }}" class="{{ request()->routeIs('cost-centers.*') ? 'active' : '' }}">
+                                <i class="fas fa-building-circle-check"></i>
+                                <span>مراكز التكلفة</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('payroll_settings.view'))
+                            <a href="{{ route('payroll-settings.edit') }}" class="{{ request()->routeIs('payroll-settings.*') ? 'active' : '' }}">
+                                <i class="fas fa-sliders"></i>
+                                <span>إعدادات الرواتب</span>
+                            </a>
+                        @endif
 
                     </div>
                 </details>
@@ -772,7 +788,8 @@
                 auth()->user()->hasPermission('users.view') ||
                 auth()->user()->hasPermission('roles.view') ||
                 auth()->user()->hasPermission('nationalities.view') ||
-                auth()->user()->hasPermission('leave_policies.view')
+                auth()->user()->hasPermission('leave_policies.view') ||
+                auth()->user()->hasPermission('payroll_settings.view')
             )
                 <div class="settings-group">
                     <div class="settings-title">
@@ -785,6 +802,13 @@
                             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                                 <i class="fas fa-user-shield"></i>
                                 <span>المستخدمين</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('payroll_settings.view'))
+                            <a href="{{ route('payroll-settings.edit') }}" class="{{ request()->routeIs('payroll-settings.*') ? 'active' : '' }}">
+                                <i class="fas fa-sliders"></i>
+                                <span>إعدادات الرواتب</span>
                             </a>
                         @endif
                         @if(auth()->user()->hasPermission('leave_requests.manager_approval'))
@@ -832,6 +856,8 @@
                                 <span>سياسات الإجازات</span>
                             </a>
                         @endif
+
+
                     </div>
                 </div>
             @endif

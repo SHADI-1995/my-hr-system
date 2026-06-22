@@ -188,7 +188,7 @@
                 <tr>
                     <th style="width:12%">الموظف</th>
                     <th>الحالة</th>
-                    <th>أيام الاستحقاق</th>
+                    <th>أيام الاستحقاق<br><small>مستحق / غير مدفوع</small></th>
                     <th>الإجمالي</th>
                     <th>إجازات غير مدفوعة</th>
                     <th>إيقاف</th>
@@ -201,10 +201,51 @@
                 </thead>
                 <tbody>
                 @forelse($payrollPeriod->items as $item)
+                    @php
+                        /*
+                         * حساب أيام الاستحقاق للعرض مباشرة من تاريخ مباشرة الموظف وتاريخ نهاية الخدمة.
+                         * هذا يمنع عرض 30 يوم لموظف بدأ أو انتهت خدمته داخل نفس الشهر.
+                         */
+                        $periodStartForDisplay = \Carbon\Carbon::parse($payrollPeriod->start_date)->startOfDay();
+                        $periodEndForDisplay = \Carbon\Carbon::parse($payrollPeriod->end_date)->startOfDay();
+
+                        $employeeHireDate = $item->employee?->hire_date
+                            ? \Carbon\Carbon::parse($item->employee->hire_date)->startOfDay()
+                            : null;
+
+                        $employeeTerminationDate = $item->employee?->termination_date
+                            ? \Carbon\Carbon::parse($item->employee->termination_date)->startOfDay()
+                            : null;
+
+                        $displayEligibleStart = $employeeHireDate && $employeeHireDate->gt($periodStartForDisplay)
+                            ? $employeeHireDate->copy()
+                            : $periodStartForDisplay->copy();
+
+                        $displayEligibleEnd = $employeeTerminationDate && $employeeTerminationDate->lt($periodEndForDisplay)
+                            ? $employeeTerminationDate->copy()
+                            : $periodEndForDisplay->copy();
+
+                        $displayPayableDays = $displayEligibleEnd->lt($displayEligibleStart)
+                            ? 0
+                            : ((int) $displayEligibleStart->diffInDays($displayEligibleEnd) + 1);
+
+                        $displayUnpaidDays = (int) ($item->unpaid_leave_days ?? 0);
+                        $storedPayableDays = (int) ($item->payable_days ?? 0);
+                    @endphp
                     <tr>
                         <td>{{ $item->employee_name }}<br><small>{{ $item->employee_number }}</small></td>
-                        <td>{{ $item->employment_status_note ?? '-' }}<br><small>{{ $item->eligible_start_date }} إلى {{ $item->eligible_end_date }}</small></td>
-                        <td>{{ $item->payable_days }} / {{ $item->period_days }}</td>
+                        <td>
+                            {{ $item->employment_status_note ?? '-' }}
+                            <br>
+                            <small>{{ $displayEligibleStart->format('Y-m-d') }} إلى {{ $displayEligibleEnd->format('Y-m-d') }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ $displayPayableDays }}</strong> / {{ $displayUnpaidDays }}
+                            @if($storedPayableDays !== $displayPayableDays)
+                                <br>
+
+                            @endif
+                        </td>
                         <td>{{ number_format($item->gross_salary, 2) }}</td>
                         <td>{{ number_format($item->unpaid_leave_deductions ?? 0, 2) }}<br><small>{{ $item->unpaid_leave_days ?? 0 }} يوم</small></td>
                         <td>{{ number_format($item->suspension_deductions, 2) }}<br><small>{{ $item->suspended_days }} يوم</small></td>

@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\Auditable;
+
 class Permission extends Model
 {
-    use Auditable;
+    protected $table = 'permissions';
+
     protected $fillable = [
         'name',
         'code',
@@ -16,5 +17,10 @@ class Permission extends Model
     public function roles()
     {
         return $this->belongsToMany(Role::class);
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->name ?: $this->code;
     }
 }

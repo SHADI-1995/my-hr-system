@@ -157,9 +157,93 @@
         .paid { background: #dcfce7; color: #166534; }
         .cancelled { background: #fee2e2; color: #991b1b; }
 
+
+        .settings-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .setting-chip {
+            background: #faf9ff;
+            border: 1px solid #eeeafc;
+            border-radius: 16px;
+            padding: 13px;
+        }
+
+        .setting-chip small {
+            display: block;
+            color: #6b5aa8;
+            font-size: 11px;
+            font-weight: 900;
+            margin-bottom: 6px;
+        }
+
+        .setting-chip strong {
+            color: #3b2b80;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .mini-list {
+            display: grid;
+            gap: 5px;
+            text-align: right;
+        }
+
+        .mini-list div {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            border-bottom: 1px dashed #e8e1ff;
+            padding-bottom: 4px;
+        }
+
+        .mini-list div:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .mini-list span {
+            color: #6b5aa8;
+            font-weight: 900;
+        }
+
+        .mini-list strong {
+            color: #111827;
+            font-weight: 900;
+            direction: ltr;
+        }
+
+        .mini-total {
+            margin-top: 6px;
+            background: #f1edff;
+            color: #3b2b80;
+            border-radius: 10px;
+            padding: 6px;
+            font-weight: 900;
+        }
+
+        .muted-note {
+            display: block;
+            margin-top: 4px;
+            color: #6b7280;
+            font-size: 9px;
+            font-weight: 800;
+        }
+
+        .warning-note {
+            display: block;
+            margin-top: 4px;
+            color: #b45309;
+            font-size: 9px;
+            font-weight: 900;
+        }
+
         @media(max-width: 1100px) {
             .stats { grid-template-columns: repeat(2, 1fr); }
             .filters { grid-template-columns: 1fr; }
+            .settings-summary { grid-template-columns: 1fr; }
         }
     </style>
 
@@ -215,6 +299,51 @@
                     </div>
                 </div>
             </form>
+        </div>
+
+        <div class="panel">
+            @php
+                $payrollSetting = $payrollSetting ?? \App\Models\PayrollSetting::current();
+
+                $salaryDayCalculationName = match ($payrollSetting->salary_day_calculation ?? 'fixed_30_days') {
+                    'fixed_30_days' => '30 يوم ثابت',
+                    'actual_month_days' => 'أيام الشهر الفعلية',
+                    'working_days' => 'أيام العمل فقط',
+                    default => $payrollSetting->salary_day_calculation ?? '-',
+                };
+
+                $paymentMethodName = match ($payrollSetting->default_payment_method ?? 'bank_transfer') {
+                    'bank_transfer' => 'تحويل بنكي',
+                    'cash' => 'نقدي',
+                    'cheque' => 'شيك',
+                    'other' => 'أخرى',
+                    default => $payrollSetting->default_payment_method ?? '-',
+                };
+            @endphp
+
+            <h3 style="color:#4c3b91;margin-bottom:14px;">إعدادات التقرير الحالية</h3>
+
+            <div class="settings-summary">
+                <div class="setting-chip">
+                    <small>طريقة احتساب الأيام</small>
+                    <strong>{{ $salaryDayCalculationName }}</strong>
+                </div>
+
+                <div class="setting-chip">
+                    <small>طريقة الصرف الافتراضية</small>
+                    <strong>{{ $paymentMethodName }}</strong>
+                </div>
+
+                <div class="setting-chip">
+                    <small>التقريب</small>
+                    <strong>{{ $payrollSetting->rounding_decimals ?? 2 }} خانات عشرية</strong>
+                </div>
+
+                <div class="setting-chip">
+                    <small>الصافي السالب</small>
+                    <strong>{{ ($payrollSetting->allow_negative_net_salary ?? false) ? 'مسموح' : 'غير مسموح' }}</strong>
+                </div>
+            </div>
         </div>
 
         <div class="panel">
@@ -278,29 +407,160 @@
                 <table>
                     <thead>
                     <tr>
-                        <th>الموظف</th>
+                        <th style="width:11%">الموظف</th>
                         <th>القسم</th>
+                        <th>تاريخ الاستحقاق</th>
                         <th>أيام الاستحقاق</th>
-                        <th>الإجمالي</th>
-                        <th>إجازات</th>
-                        <th>إيقاف</th>
-                        <th>استقطاعات</th>
-                        <th>سلف</th>
+                        <th>الراتب الأساسي</th>
+                        <th style="width:14%">تفاصيل البدلات</th>
+                        <th>إجمالي البدلات</th>
+                        <th>إجمالي الراتب</th>
+                        <th style="width:15%">تفاصيل الاستقطاعات</th>
+                        <th>إجمالي الاستقطاعات</th>
                         <th>الصافي</th>
                         <th>قسيمة</th>
                     </tr>
                     </thead>
                     <tbody>
                     @forelse($selectedPeriod->items as $item)
+                        @php
+                            /*
+                             * تصحيح تاريخ وأيام الاستحقاق في صفحة التقرير:
+                             * نحسبها للعرض من تاريخ المسير + تاريخ مباشرة الموظف + تاريخ نهاية الخدمة.
+                             * هذا يمنع ظهور تواريخ أو أيام قديمة إذا كانت payroll_items محفوظة بقيم غير محدثة.
+                             */
+                            $periodStart = $selectedPeriod->start_date
+                                ? \Carbon\Carbon::parse($selectedPeriod->start_date)->startOfDay()
+                                : null;
+
+                            $periodEnd = $selectedPeriod->end_date
+                                ? \Carbon\Carbon::parse($selectedPeriod->end_date)->startOfDay()
+                                : null;
+
+                            $employeeHireDate = $item->employee?->hire_date
+                                ? \Carbon\Carbon::parse($item->employee->hire_date)->startOfDay()
+                                : null;
+
+                            $employeeTerminationDate = $item->employee?->termination_date
+                                ? \Carbon\Carbon::parse($item->employee->termination_date)->startOfDay()
+                                : null;
+
+                            $eligibleStart = $item->eligible_start_date
+                                ? \Carbon\Carbon::parse($item->eligible_start_date)->startOfDay()
+                                : ($employeeHireDate && $periodStart && $employeeHireDate->gt($periodStart) ? $employeeHireDate->copy() : ($periodStart?->copy()));
+
+                            $eligibleEnd = $item->eligible_end_date
+                                ? \Carbon\Carbon::parse($item->eligible_end_date)->startOfDay()
+                                : ($employeeTerminationDate && $periodEnd && $employeeTerminationDate->lt($periodEnd) ? $employeeTerminationDate->copy() : ($periodEnd?->copy()));
+
+                            if ($employeeHireDate && $periodStart && $eligibleStart && $employeeHireDate->gt($periodStart) && $eligibleStart->lt($employeeHireDate)) {
+                                $eligibleStart = $employeeHireDate->copy();
+                            }
+
+                            if ($employeeTerminationDate && $periodEnd && $eligibleEnd && $employeeTerminationDate->lt($periodEnd) && $eligibleEnd->gt($employeeTerminationDate)) {
+                                $eligibleEnd = $employeeTerminationDate->copy();
+                            }
+
+                            $actualEligibleDays = 0;
+
+                            if ($eligibleStart && $eligibleEnd && $eligibleEnd->gte($eligibleStart)) {
+                                $actualEligibleDays = (int) $eligibleStart->diffInDays($eligibleEnd) + 1;
+                            }
+
+                            if (($payrollSetting->salary_day_calculation ?? 'fixed_30_days') === 'working_days') {
+                                $displayPayableDays = 0;
+
+                                if ($eligibleStart && $eligibleEnd && $eligibleEnd->gte($eligibleStart)) {
+                                    $dayCursor = $eligibleStart->copy();
+
+                                    while ($dayCursor->lte($eligibleEnd)) {
+                                        if (!$dayCursor->isFriday()) {
+                                            $displayPayableDays++;
+                                        }
+
+                                        $dayCursor->addDay();
+                                    }
+                                }
+
+                                $displayPeriodDays = (int) ($item->period_days ?: $displayPayableDays);
+                            } elseif (($payrollSetting->salary_day_calculation ?? 'fixed_30_days') === 'fixed_30_days') {
+                                $isFullPeriod = $periodStart && $periodEnd && $eligibleStart && $eligibleEnd
+                                    && $eligibleStart->isSameDay($periodStart)
+                                    && $eligibleEnd->isSameDay($periodEnd);
+
+                                $displayPayableDays = $isFullPeriod ? 30 : min($actualEligibleDays, 30);
+                                $displayPeriodDays = 30;
+                            } else {
+                                $displayPayableDays = $actualEligibleDays;
+                                $displayPeriodDays = (int) ($item->period_days ?: ($periodStart && $periodEnd ? ((int) $periodStart->diffInDays($periodEnd) + 1) : 0));
+                            }
+
+                            $storedPayableDays = (int) ($item->payable_days ?? 0);
+                            $needsRecalculateWarning = $storedPayableDays !== $displayPayableDays;
+
+                            $eligibleStartText = $eligibleStart ? $eligibleStart->format('Y-m-d') : '-';
+                            $eligibleEndText = $eligibleEnd ? $eligibleEnd->format('Y-m-d') : '-';
+
+                            $housing = (float) ($item->housing_allowance ?? 0);
+                            $transport = (float) ($item->transport_allowance ?? 0);
+                            $food = (float) ($item->food_allowance ?? 0);
+                            $other = (float) ($item->other_allowance ?? 0);
+                            $totalAllowances = $housing + $transport + $food + $other;
+
+                            $unpaid = (float) ($item->unpaid_leave_deductions ?? 0);
+                            $suspension = (float) ($item->suspension_deductions ?? 0);
+                            $regular = (float) ($item->regular_deductions ?? 0);
+                            $advance = (float) ($item->salary_advance_deductions ?? 0);
+                            $totalDeductions = (float) ($item->total_deductions ?? ($unpaid + $suspension + $regular + $advance));
+                        @endphp
+
                         <tr>
                             <td>{{ $item->employee_name }}<br><small>{{ $item->employee_number }}</small></td>
                             <td>{{ $item->employee?->department?->name ?? '-' }}</td>
-                            <td>{{ $item->payable_days ?? '-' }} / {{ $item->period_days }}</td>
+                            <td>
+                                {{ $eligibleStartText }}
+                                <br>
+                                <small>إلى {{ $eligibleEndText }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ $displayPayableDays }}</strong>
+                                <span class="muted-note">من أصل {{ $displayPeriodDays }} يوم</span>
+
+                                @if($needsRecalculateWarning)
+                                    <span class="warning-note">
+                                    </span>
+                                @endif
+                            </td>
+                            <td>{{ number_format($item->basic_salary ?? 0, 2) }}</td>
+
+                            <td>
+                                <div class="mini-list">
+                                    <div><span>سكن</span><strong>{{ number_format($housing, 2) }}</strong></div>
+                                    <div><span>نقل</span><strong>{{ number_format($transport, 2) }}</strong></div>
+                                    <div><span>طعام</span><strong>{{ number_format($food, 2) }}</strong></div>
+                                    <div><span>أخرى</span><strong>{{ number_format($other, 2) }}</strong></div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="mini-total">{{ number_format($totalAllowances, 2) }}</div>
+                            </td>
+
                             <td>{{ number_format($item->gross_salary, 2) }}</td>
-                            <td>{{ number_format($item->unpaid_leave_deductions ?? 0, 2) }}</td>
-                            <td>{{ number_format($item->suspension_deductions, 2) }}</td>
-                            <td>{{ number_format($item->regular_deductions, 2) }}</td>
-                            <td>{{ number_format($item->salary_advance_deductions, 2) }}</td>
+
+                            <td>
+                                <div class="mini-list">
+                                    <div><span>إجازات</span><strong>{{ number_format($unpaid, 2) }}</strong></div>
+                                    <div><span>إيقاف</span><strong>{{ number_format($suspension, 2) }}</strong></div>
+                                    <div><span>استقطاع</span><strong>{{ number_format($regular, 2) }}</strong></div>
+                                    <div><span>سلف</span><strong>{{ number_format($advance, 2) }}</strong></div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="mini-total">{{ number_format($totalDeductions, 2) }}</div>
+                            </td>
+
                             <td><strong>{{ number_format($item->net_salary, 2) }}</strong></td>
                             <td>
                                 @if(auth()->user()->hasPermission('payroll_reports.payslip'))
@@ -314,7 +574,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10">لا توجد تفاصيل لهذا المسير.</td>
+                            <td colspan="12">لا توجد تفاصيل لهذا المسير.</td>
                         </tr>
                     @endforelse
                     </tbody>

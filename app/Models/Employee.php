@@ -381,6 +381,27 @@ class Employee extends Model
         return $this->hasMany(EmployeeDeduction::class);
     }
 
+    /*
+     * جدول جدولة الاستقطاعات الشهرية.
+     * كل سجل يمثل خصم شهر محدد للموظف.
+     */
+    public function deductionSchedules()
+    {
+        return $this->hasMany(EmployeeDeductionSchedule::class);
+    }
+
+    public function pendingDeductionSchedules()
+    {
+        return $this->hasMany(EmployeeDeductionSchedule::class)
+            ->where('status', 'pending');
+    }
+
+    public function deductedDeductionSchedules()
+    {
+        return $this->hasMany(EmployeeDeductionSchedule::class)
+            ->where('status', 'deducted');
+    }
+
     public function suspensions()
     {
         return $this->hasMany(EmployeeSuspension::class);

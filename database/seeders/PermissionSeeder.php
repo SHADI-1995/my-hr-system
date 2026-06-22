@@ -921,6 +921,60 @@ class PermissionSeeder extends Seeder
                 'module' => 'cost_centers',
             ],
 
+            [
+                'name' => 'تعديل استقطاع موظف',
+                'code' => 'employee_deductions.edit',
+                'module' => 'employee_deductions',
+            ],
+
+            /*
+                                              |--------------------------------------------------------------------------
+                                              | اهدادات الراتب
+                                              |--------------------------------------------------------------------------
+                                              */
+
+
+            [
+                'name' => 'عرض إعدادات الرواتب',
+                'code' => 'payroll_settings.view',
+                'module' => 'payroll_settings',
+            ],
+            [
+                'name' => 'تعديل إعدادات الرواتب',
+                'code' => 'payroll_settings.edit',
+                'module' => 'payroll_settings',
+            ],
+
+            /*
+                                  |--------------------------------------------------------------------------
+                                  | deduction_types
+                                  |--------------------------------------------------------------------------
+                                  */
+
+
+            [
+                'name' => 'عرض أنواع الاستقطاعات',
+                'code' => 'deduction_types.view',
+                'module' => 'deduction_types',
+            ],
+            [
+                'name' => 'إضافة نوع استقطاع',
+                'code' => 'deduction_types.create',
+                'module' => 'deduction_types',
+            ],
+            [
+                'name' => 'تعديل نوع استقطاع',
+                'code' => 'deduction_types.edit',
+                'module' => 'deduction_types',
+            ],
+            [
+                'name' => 'حذف نوع استقطاع',
+                'code' => 'deduction_types.delete',
+                'module' => 'deduction_types',
+            ],
+
+
+
 
             /*
                         |--------------------------------------------------------------------------
