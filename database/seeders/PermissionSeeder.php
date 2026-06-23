@@ -690,6 +690,11 @@ class PermissionSeeder extends Seeder
                 'module' => 'payroll_periods',
             ],
             [
+                'name' => 'إلغاء اعتماد مسير الرواتب',
+                'code' => 'payroll_periods.cancel_approval',
+                'module' => 'payroll_periods',
+            ],
+            [
                 'name' => 'صرف مسير الرواتب',
                 'code' => 'payroll_periods.pay',
                 'module' => 'payroll_periods',
@@ -972,7 +977,75 @@ class PermissionSeeder extends Seeder
                 'code' => 'deduction_types.delete',
                 'module' => 'deduction_types',
             ],
+            /*
+                       |--------------------------------------------------------------------------
+                       | Payroll Period Logs
+                       |--------------------------------------------------------------------------
+                       */
+            [
+                'name' => 'عرض سجل حركات مسير الرواتب',
+                'code' => 'payroll_period_logs.view',
+                'module' => 'payroll_period_logs',
+            ],
+            [
+                'name' => 'تصدير سجل حركات مسير الرواتب',
+                'code' => 'payroll_period_logs.export',
+                'module' => 'payroll_period_logs',
+            ],
 
+
+            /*
+                                    |--------------------------------------------------------------------------
+                                    | payroll_bank_transfers
+                                    |--------------------------------------------------------------------------
+                                    */
+
+            [
+                'name' => 'عرض كشف تحويل الرواتب',
+                'code' => 'payroll_bank_transfers.view',
+                'module' => 'payroll_bank_transfers',
+            ],
+            [
+                'name' => 'تصدير كشف تحويل الرواتب',
+                'code' => 'payroll_bank_transfers.export',
+                'module' => 'payroll_bank_transfers',
+            ],
+
+
+
+            /*
+                                   |--------------------------------------------------------------------------
+                                   |payroll_bank_transfer_batches_permissions
+                                   |--------------------------------------------------------------------------
+                                   */
+
+
+
+            [
+                'name' => 'عرض دفعات تحويل الرواتب',
+                'code' => 'payroll_bank_transfer_batches.view',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
+            [
+                'name' => 'إنشاء دفعة تحويل الرواتب',
+                'code' => 'payroll_bank_transfer_batches.create',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
+            [
+                'name' => 'تسجيل إرسال دفعة التحويل للبنك',
+                'code' => 'payroll_bank_transfer_batches.send',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
+            [
+                'name' => 'تأكيد تحويل الرواتب',
+                'code' => 'payroll_bank_transfer_batches.confirm',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
+            [
+                'name' => 'إلغاء دفعة تحويل الرواتب',
+                'code' => 'payroll_bank_transfer_batches.cancel',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
 
 
 

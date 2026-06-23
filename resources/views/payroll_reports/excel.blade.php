@@ -94,14 +94,16 @@
             $employee = $item->employee;
 
             $nationalityName =
-                $employee?->nationality?->name_ar
+                $item->employee_nationality
+                ?? $employee?->nationality?->name_ar
                 ?? $employee?->nationality?->name
                 ?? $employee?->nationality_name
                 ?? $employee?->nationality
                 ?? '-';
 
             $positionName =
-                $employee?->position?->title
+                $item->employee_position
+                ?? $employee?->position?->title
                 ?? $employee?->position?->name_ar
                 ?? $employee?->position?->name
                 ?? $employee?->position_name
@@ -109,34 +111,37 @@
                 ?? '-';
 
             $departmentName =
-                $employee?->department?->name
+                $item->employee_department
+                ?? $employee?->department?->name
                 ?? $employee?->department?->name_ar
                 ?? $employee?->department_name
                 ?? '-';
 
             $paymentMethodName =
-                $employee?->salaryPaymentMethod?->name_ar
-                ?? $employee?->salaryPaymentMethod?->name
-                ?? $employee?->paymentMethod?->name_ar
-                ?? $employee?->paymentMethod?->name
+                $item->salary_payment_method_name
                 ?? $employee?->salary_payment_method_name
+                ?? $employee?->salaryPaymentMethod?->name_ar
+                ?? $employee?->salaryPaymentMethod?->name
                 ?? $employee?->salary_payment_method
-                ?? ($payrollSetting->default_payment_method_name ?? null)
                 ?? '-';
 
             $payrollGroupName =
-                $employee?->payrollGroup?->name_ar
+                $item->payroll_group_name
+                ?? $employee?->payrollGroup?->name_ar
                 ?? $employee?->payrollGroup?->name
                 ?? $employee?->payroll_group_name
+                ?? $employee?->payroll_group
                 ?? '-';
 
             $costCenterName =
-                $employee?->costCenter?->name_ar
+                $item->cost_center_name
+                ?? $employee?->costCenter?->name_ar
                 ?? $employee?->costCenter?->name
                 ?? $employee?->cost_center_name
+                ?? $employee?->cost_center
                 ?? '-';
 
-            $employeeStatusText = $item->employment_status_note;
+            $employeeStatusText = $item->employee_status_text ?? $item->employment_status_note;
 
             if (!$employeeStatusText || trim((string) $employeeStatusText) === '-') {
                 $employeeStatusText = match ((string) ($employee?->status ?? '')) {

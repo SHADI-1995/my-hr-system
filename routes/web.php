@@ -37,9 +37,10 @@ use App\Http\Controllers\PayrollGroupController;
 use App\Http\Controllers\CostCenterController;
 use App\Http\Controllers\DeductionTypeController;
 use App\Http\Controllers\PayrollSettingController;
+use App\Http\Controllers\PayrollPeriodLogController;
+use App\Http\Controllers\PayrollBankTransferController;
 
-
-
+use App\Http\Controllers\PayrollBankTransferBatchController;
 Route::redirect('/', '/login');
 
 Route::get('/dashboard', function () {
@@ -925,8 +926,73 @@ Route::middleware('auth')->group(function () {
     Route::put('payroll-settings', [PayrollSettingController::class, 'update'])
         ->name('payroll-settings.update');
 
+    /*
+       |--------------------------------------------------------------------------
+       |إلغاء اعتماد مسير الرواتب
+       |--------------------------------------------------------------------------
+       */
+// إلغاء اعتماد مسير الرواتب - فقط قبل الصرف
+    Route::post('/payroll-periods/{payrollPeriod}/cancel-approval', [PayrollPeriodController::class, 'cancelApproval'])
+        ->name('payroll-periods.cancel-approval');
 
 
+    /*
+       |--------------------------------------------------------------------------
+       | logs PayrollPeriod
+       |--------------------------------------------------------------------------
+       */
+
+    Route::get('/payroll-period-logs', [PayrollPeriodLogController::class, 'index'])
+        ->name('payroll-period-logs.index');
+    Route::get('/payroll-period-logs', [PayrollPeriodLogController::class, 'index'])
+        ->name('payroll-period-logs.index');
+
+    Route::get('/payroll-period-logs/export-excel', [PayrollPeriodLogController::class, 'exportExcel'])
+        ->name('payroll-period-logs.export-excel');
+
+    Route::get('/payroll-period-logs/print-pdf', [PayrollPeriodLogController::class, 'printPdf'])
+        ->name('payroll-period-logs.print-pdf');
+
+    /*
+       |--------------------------------------------------------------------------
+       | payroll_bank_transfers
+       |--------------------------------------------------------------------------
+       */
+
+
+    Route::get('/payroll-bank-transfers', [PayrollBankTransferController::class, 'index'])
+        ->name('payroll-bank-transfers.index');
+
+    Route::get('/payroll-bank-transfers/{payrollPeriod}/export-excel', [PayrollBankTransferController::class, 'exportExcel'])
+        ->name('payroll-bank-transfers.export-excel');
+    Route::get('/payroll-bank-transfers/{payrollPeriod}/export-csv', [PayrollBankTransferController::class, 'exportCsv'])
+        ->name('payroll-bank-transfers.export-csv');
+    Route::get('/payroll-bank-transfers/{payrollPeriod}/print-pdf', [PayrollBankTransferController::class, 'printPdf'])
+        ->name('payroll-bank-transfers.print-pdf');
+
+
+
+
+    /*
+       |--------------------------------------------------------------------------
+       |payroll_bank_transfer_batches
+       |--------------------------------------------------------------------------
+       */
+
+    Route::get('/payroll-bank-transfer-batches', [PayrollBankTransferBatchController::class, 'index'])
+        ->name('payroll-bank-transfer-batches.index');
+
+    Route::post('/payroll-bank-transfer-batches', [PayrollBankTransferBatchController::class, 'store'])
+        ->name('payroll-bank-transfer-batches.store');
+
+    Route::post('/payroll-bank-transfer-batches/{batch}/mark-sent', [PayrollBankTransferBatchController::class, 'markSent'])
+        ->name('payroll-bank-transfer-batches.mark-sent');
+
+    Route::post('/payroll-bank-transfer-batches/{batch}/confirm', [PayrollBankTransferBatchController::class, 'confirm'])
+        ->name('payroll-bank-transfer-batches.confirm');
+
+    Route::post('/payroll-bank-transfer-batches/{batch}/cancel', [PayrollBankTransferBatchController::class, 'cancel'])
+        ->name('payroll-bank-transfer-batches.cancel');
 
     /*
    |--------------------------------------------------------------------------

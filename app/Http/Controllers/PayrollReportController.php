@@ -15,8 +15,7 @@ class PayrollReportController extends Controller
 
         $payrollSetting = PayrollSetting::current();
 
-        $periodsQuery = PayrollPeriod::query()
-            ->latest();
+        $periodsQuery = PayrollPeriod::query()->latest();
 
         if ($request->month) {
             $periodsQuery->where('month', $request->month);
@@ -59,11 +58,6 @@ class PayrollReportController extends Controller
 
         $payrollSetting = PayrollSetting::current();
 
-        /*
-         * مهم لتقرير Excel:
-         * نحمّل بيانات الموظف الإضافية حتى تظهر:
-         * الجنسية، الوظيفة، طريقة صرف الراتب، مجموعة الرواتب، مركز التكلفة، حالة الموظف.
-         */
         $payrollPeriod->load($this->payrollReportRelations());
 
         $fileName = 'payroll-report-' . $payrollPeriod->month . '.xls';
@@ -91,16 +85,7 @@ class PayrollReportController extends Controller
 
         $payrollSetting = PayrollSetting::current();
 
-        $payrollItem->load([
-            'employee.department',
-            'employee.position',
-            'employee.nationality',
-            'employee.payrollGroup',
-            'employee.costCenter',
-            'employee.salaryPaymentMethod',
-            'payrollPeriod',
-            'components',
-        ]);
+        $payrollItem->load($this->payslipRelations());
 
         return view('payroll_reports.payslip', compact('payrollItem', 'payrollSetting'));
     }
@@ -111,14 +96,28 @@ class PayrollReportController extends Controller
             'items.employee.department',
             'items.employee.position',
             'items.employee.nationality',
+            'items.employee.salaryPaymentMethod',
             'items.employee.payrollGroup',
             'items.employee.costCenter',
-            'items.employee.salaryPaymentMethod',
             'items.components',
             'createdBy',
             'calculatedBy',
             'approvedBy',
             'paidBy',
+        ];
+    }
+
+    private function payslipRelations(): array
+    {
+        return [
+            'employee.department',
+            'employee.position',
+            'employee.nationality',
+            'employee.salaryPaymentMethod',
+            'employee.payrollGroup',
+            'employee.costCenter',
+            'payrollPeriod',
+            'components',
         ];
     }
 }

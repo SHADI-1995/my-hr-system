@@ -161,9 +161,7 @@
 
 <div class="settings-box">
     <div><small>طريقة احتساب الأيام</small><strong>{{ $salaryDayCalculationName }}</strong></div>
-    <div><small>طريقة الصرف الافتراضية</small><strong>{{ $paymentMethodName }}</strong></div>
     <div><small>التقريب</small><strong>{{ $payrollSetting->rounding_decimals ?? 2 }} خانات</strong></div>
-    <div><small>الصافي السالب</small><strong>{{ ($payrollSetting->allow_negative_net_salary ?? false) ? 'مسموح' : 'غير مسموح' }}</strong></div>
 </div>
 
 <div class="stats">
@@ -210,19 +208,21 @@
     </tr>
     </thead>
     <tbody>
-    @foreach($payrollPeriod->items as $item)
+    @forelse($payrollPeriod->items as $item)
         @php
             $employee = $item->employee;
 
             $nationalityName =
-                $employee?->nationality?->name_ar
+                $item->employee_nationality
+                ?? $employee?->nationality?->name_ar
                 ?? $employee?->nationality?->name
                 ?? $employee?->nationality_name
                 ?? $employee?->nationality
                 ?? '-';
 
             $positionName =
-                $employee?->position?->title
+                $item->employee_position
+                ?? $employee?->position?->title
                 ?? $employee?->position?->name_ar
                 ?? $employee?->position?->name
                 ?? $employee?->position_name
@@ -230,34 +230,43 @@
                 ?? '-';
 
             $departmentName =
-                $employee?->department?->name
+                $item->employee_department
+                ?? $employee?->department?->name
                 ?? $employee?->department?->name_ar
                 ?? $employee?->department_name
                 ?? '-';
 
             $paymentMethodEmployee =
-                $employee?->salaryPaymentMethod?->name_ar
+                $item->salary_payment_method_name
+                ?? $employee?->salary_payment_method_name
+                ?? $employee?->salaryPaymentMethod?->name_ar
                 ?? $employee?->salaryPaymentMethod?->name
                 ?? $employee?->paymentMethod?->name_ar
                 ?? $employee?->paymentMethod?->name
-                ?? $employee?->salary_payment_method_name
                 ?? $employee?->salary_payment_method
                 ?? $paymentMethodName
                 ?? '-';
 
             $payrollGroupName =
-                $employee?->payrollGroup?->name_ar
-                ?? $employee?->payrollGroup?->name
+                $item->payroll_group_name
                 ?? $employee?->payroll_group_name
+                ?? $employee?->payrollGroup?->name_ar
+                ?? $employee?->payrollGroup?->name
+                ?? $employee?->payroll_group
                 ?? '-';
 
             $costCenterName =
-                $employee?->costCenter?->name_ar
-                ?? $employee?->costCenter?->name
+                $item->cost_center_name
                 ?? $employee?->cost_center_name
+                ?? $employee?->costCenter?->name_ar
+                ?? $employee?->costCenter?->name
+                ?? $employee?->cost_center
                 ?? '-';
 
-            $employeeStatusText = $item->employment_status_note;
+            $employeeStatusText =
+                $item->employee_status_text
+                ?? $item->employment_status_note
+                ?? null;
 
             if (!$employeeStatusText || trim((string) $employeeStatusText) === '-') {
                 $employeeStatusText = match ((string) ($employee?->status ?? '')) {
@@ -389,7 +398,11 @@
 
             <td class="number"><strong>{{ number_format($net, 2) }}</strong></td>
         </tr>
-    @endforeach
+    @empty
+        <tr>
+            <td colspan="24">لا توجد تفاصيل لهذا المسير.</td>
+        </tr>
+    @endforelse
 
     <tr class="total-row">
         <td colspan="10">الإجمالي</td>

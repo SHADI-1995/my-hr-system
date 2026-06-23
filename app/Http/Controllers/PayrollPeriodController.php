@@ -10,6 +10,7 @@ use App\Models\LeaveRequest;
 use App\Models\PayrollItem;
 use App\Models\PayrollItemComponent;
 use App\Models\PayrollPeriod;
+use App\Models\PayrollPeriodLog;
 use App\Models\PayrollGroup;
 use App\Models\SalaryAdvanceInstallment;
 use Carbon\Carbon;
@@ -128,6 +129,14 @@ class PayrollPeriodController extends Controller
             }
         }
 
+        $this->logPayrollPeriodAction(
+            $period,
+            'created',
+            null,
+            'draft',
+            'تم إنشاء مسير الرواتب'
+        );
+
         return redirect()
             ->route('payroll-periods.show', $period)
             ->with('success', 'تم إنشاء فترة مسير الرواتب بنجاح');
@@ -137,14 +146,7 @@ class PayrollPeriodController extends Controller
     {
         abort_if(!auth()->user()->hasPermission('payroll_periods.view'), 403);
 
-        $payrollPeriod->load([
-            'items.employee.department',
-            'items.components',
-            'createdBy',
-            'calculatedBy',
-            'approvedBy',
-            'paidBy',
-        ]);
+        $payrollPeriod->load($this->payrollItemRelations());
 
         $payrollGroups = $this->payrollPeriodGroups($payrollPeriod);
 
@@ -167,6 +169,8 @@ class PayrollPeriodController extends Controller
         }
 
         DB::transaction(function () use ($payrollPeriod) {
+            $oldStatus = $payrollPeriod->status;
+
             $payrollPeriod->items()->delete();
 
             $periodStart = Carbon::parse($payrollPeriod->start_date)->startOfDay();
@@ -227,6 +231,9 @@ class PayrollPeriodController extends Controller
                     'employee_number' => $employee->employee_number,
                     'employee_name' => $employee->display_name,
 
+                    // Snapshot بيانات الموظف وقت احتساب المسير
+                    ...$this->employeeSnapshot($employee, $eligibility['note'] ?? null),
+
                     'eligible_start_date' => $eligibility['eligible_start_date'],
                     'eligible_end_date' => $eligibility['eligible_end_date'],
 
@@ -277,6 +284,24 @@ class PayrollPeriodController extends Controller
                 'calculated_by' => auth()->id(),
                 'calculated_at' => now(),
             ]);
+
+            $payrollPeriod->refresh();
+
+            $this->logPayrollPeriodAction(
+                $payrollPeriod,
+                'calculated',
+                $oldStatus,
+                'calculated',
+                $oldStatus === 'calculated'
+                    ? 'تم إعادة احتساب مسير الرواتب'
+                    : 'تم احتساب مسير الرواتب',
+                [
+                    'employees_count' => (int) $payrollPeriod->items()->count(),
+                    'total_gross_salary' => (float) $payrollPeriod->items()->sum('gross_salary'),
+                    'total_deductions' => (float) $payrollPeriod->items()->sum('total_deductions'),
+                    'total_net_salary' => (float) $payrollPeriod->items()->sum('net_salary'),
+                ]
+            );
         });
 
         return redirect()
@@ -292,15 +317,82 @@ class PayrollPeriodController extends Controller
             return back()->with('error', 'لا يمكن اعتماد هذا المسير في حالته الحالية');
         }
 
-        $payrollPeriod->update([
-            'status' => 'approved',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
+        DB::transaction(function () use ($payrollPeriod) {
+            $oldStatus = $payrollPeriod->status;
 
-        $payrollPeriod->items()->update(['status' => 'approved']);
+            /*
+             * الاعتماد يقفل مرحلة الاحتساب.
+             * بعد الاعتماد لا يمكن إعادة الاحتساب أو حذف المسير.
+             */
+            $payrollPeriod->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
 
-        return back()->with('success', 'تم اعتماد مسير الرواتب بنجاح');
+            $payrollPeriod->items()->update(['status' => 'approved']);
+
+            $payrollPeriod->refresh();
+
+            $this->logPayrollPeriodAction(
+                $payrollPeriod,
+                'approved',
+                $oldStatus,
+                'approved',
+                'تم اعتماد مسير الرواتب وقفل مرحلة الاحتساب',
+                [
+                    'employees_count' => (int) $payrollPeriod->items()->count(),
+                    'total_gross_salary' => (float) $payrollPeriod->total_gross_salary,
+                    'total_deductions' => (float) $payrollPeriod->total_deductions,
+                    'total_net_salary' => (float) $payrollPeriod->total_net_salary,
+                ]
+            );
+        });
+
+        return back()->with('success', 'تم اعتماد مسير الرواتب وقفل مرحلة الاحتساب بنجاح');
+    }
+
+    public function cancelApproval(PayrollPeriod $payrollPeriod)
+    {
+        abort_if(!auth()->user()->hasPermission('payroll_periods.cancel_approval'), 403);
+
+        if ($payrollPeriod->status !== 'approved') {
+            return back()->with('error', 'يمكن إلغاء الاعتماد فقط للمسير المعتمد ولم يتم صرفه بعد');
+        }
+
+        DB::transaction(function () use ($payrollPeriod) {
+            $oldStatus = $payrollPeriod->status;
+
+            /*
+             * إلغاء الاعتماد يعيد المسير إلى محسوب.
+             * بعدها يمكن إعادة الاحتساب أو الاعتماد مرة أخرى.
+             */
+            $payrollPeriod->update([
+                'status' => 'calculated',
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+
+            $payrollPeriod->items()->update(['status' => 'calculated']);
+
+            $payrollPeriod->refresh();
+
+            $this->logPayrollPeriodAction(
+                $payrollPeriod,
+                'approval_cancelled',
+                $oldStatus,
+                'calculated',
+                'تم إلغاء اعتماد مسير الرواتب وإعادته إلى مرحلة الاحتساب',
+                [
+                    'employees_count' => (int) $payrollPeriod->items()->count(),
+                    'total_gross_salary' => (float) $payrollPeriod->total_gross_salary,
+                    'total_deductions' => (float) $payrollPeriod->total_deductions,
+                    'total_net_salary' => (float) $payrollPeriod->total_net_salary,
+                ]
+            );
+        });
+
+        return back()->with('success', 'تم إلغاء اعتماد مسير الرواتب وإعادته إلى مرحلة الاحتساب بنجاح');
     }
 
     public function markAsPaid(PayrollPeriod $payrollPeriod)
@@ -312,6 +404,12 @@ class PayrollPeriodController extends Controller
         }
 
         DB::transaction(function () use ($payrollPeriod) {
+            $oldStatus = $payrollPeriod->status;
+
+            /*
+             * الصرف يقفل المسير بالكامل.
+             * بعد الصرف يتم تحديث أقساط السلف والاستقطاعات المرتبطة بهذا المسير.
+             */
             $payrollPeriod->update([
                 'status' => 'paid',
                 'paid_by' => auth()->id(),
@@ -322,24 +420,172 @@ class PayrollPeriodController extends Controller
 
             $this->markSalaryAdvanceInstallmentsAsDeducted($payrollPeriod);
             $this->markCompletedDeductions($payrollPeriod);
+
+            $payrollPeriod->refresh();
+
+            $this->logPayrollPeriodAction(
+                $payrollPeriod,
+                'paid',
+                $oldStatus,
+                'paid',
+                'تم صرف مسير الرواتب وقفل المسير بالكامل',
+                [
+                    'employees_count' => (int) $payrollPeriod->employees_count,
+                    'total_gross_salary' => (float) $payrollPeriod->total_gross_salary,
+                    'total_deductions' => (float) $payrollPeriod->total_deductions,
+                    'total_net_salary' => (float) $payrollPeriod->total_net_salary,
+                ]
+            );
         });
 
-        return back()->with('success', 'تم صرف مسير الرواتب وتحديث أقساط السلف والاستقطاعات بنجاح');
+        return back()->with('success', 'تم صرف مسير الرواتب وقفل المسير بالكامل وتحديث أقساط السلف والاستقطاعات بنجاح');
     }
 
     public function destroy(PayrollPeriod $payrollPeriod)
     {
         abort_if(!auth()->user()->hasPermission('payroll_periods.delete'), 403);
 
-        if ($payrollPeriod->status === 'paid') {
-            return back()->with('error', 'لا يمكن حذف مسير مدفوع');
+        /*
+         * حماية مالية:
+         * لا يسمح بحذف المسير بعد الاعتماد أو الصرف.
+         * الحذف مسموح فقط في draft أو calculated.
+         */
+        if (
+            in_array($payrollPeriod->status, ['approved', 'paid'], true) ||
+            (isset($payrollPeriod->can_delete) && !$payrollPeriod->can_delete)
+        ) {
+            return back()->with('error', 'لا يمكن حذف مسير معتمد أو مدفوع لأنه مقفل ماليًا');
         }
 
-        $payrollPeriod->delete();
+        DB::transaction(function () use ($payrollPeriod) {
+            $this->logPayrollPeriodAction(
+                $payrollPeriod,
+                'deleted',
+                $payrollPeriod->status,
+                null,
+                'تم حذف مسير الرواتب ونتائجه'
+            );
+
+            $payrollPeriod->items()->delete();
+            $payrollPeriod->delete();
+        });
 
         return redirect()
             ->route('payroll-periods.index')
-            ->with('success', 'تم حذف فترة المسير بنجاح');
+            ->with('success', 'تم حذف فترة المسير ونتائجها بنجاح');
+    }
+
+
+
+    private function logPayrollPeriodAction(
+        PayrollPeriod $payrollPeriod,
+        string $action,
+        ?string $statusFrom = null,
+        ?string $statusTo = null,
+        ?string $description = null,
+        array $meta = []
+    ): void {
+        /*
+         * تسجيل مباشر في قاعدة البيانات لتجنب أي مشكلة في Model أو fillable.
+         * إذا لم يوجد الجدول لا نوقف العملية.
+         */
+        if (!Schema::hasTable('payroll_period_logs')) {
+            return;
+        }
+
+        DB::table('payroll_period_logs')->insert([
+            'payroll_period_id' => $payrollPeriod->id,
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'status_from' => $statusFrom,
+            'status_to' => $statusTo,
+            'description' => $description,
+            'meta' => !empty($meta) ? json_encode($meta, JSON_UNESCAPED_UNICODE) : null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function payrollItemRelations(): array
+    {
+        return [
+            'items.employee.department',
+            'items.employee.position',
+            'items.employee.nationality',
+            'items.employee.salaryPaymentMethod',
+            'items.employee.payrollGroup',
+            'items.employee.costCenter',
+            'items.components',
+            'createdBy',
+            'calculatedBy',
+            'approvedBy',
+            'paidBy',
+            'logs.user',
+        ];
+    }
+
+    private function employeeSnapshot(Employee $employee, ?string $employmentStatusNote = null): array
+    {
+        $employeeStatusText = $employmentStatusNote;
+
+        if (!$employeeStatusText || trim((string) $employeeStatusText) === '-') {
+            $employeeStatusText = match ((string) ($employee->status ?? '')) {
+                'active' => 'نشط',
+                'inactive' => 'غير نشط',
+                'terminated' => 'منتهي الخدمة',
+                'resigned' => 'مستقيل',
+                'suspended' => 'موقوف',
+                'on_leave' => 'في إجازة',
+                default => null,
+            };
+        }
+
+        if (!$employeeStatusText) {
+            $employeeStatusText = match ((string) ($employee->payroll_status ?? '')) {
+                'included' => 'مدرج في مسير الرواتب',
+                'excluded' => 'مستبعد من مسير الرواتب',
+                default => 'نشط طوال الفترة',
+            };
+        }
+
+        return [
+            'employee_nationality' => $employee->nationality?->name_ar
+                ?? $employee->nationality?->name
+                    ?? $employee->nationality_name
+                    ?? $employee->nationality
+                    ?? null,
+
+            'employee_position' => $employee->position?->title
+                ?? $employee->position?->name_ar
+                    ?? $employee->position?->name
+                    ?? $employee->position_name
+                    ?? $employee->job_title
+                    ?? null,
+
+            'employee_department' => $employee->department?->name
+                ?? $employee->department?->name_ar
+                    ?? $employee->department_name
+                    ?? null,
+
+            'employee_status_text' => $employeeStatusText,
+
+            'salary_payment_method_name' => $employee->salary_payment_method_name
+                ?? $employee->salaryPaymentMethod?->name_ar
+                    ?? $employee->salaryPaymentMethod?->name
+                    ?? $employee->salary_payment_method
+                    ?? null,
+
+            'payroll_group_name' => $employee->payroll_group_name
+                ?? $employee->payrollGroup?->name_ar
+                    ?? $employee->payrollGroup?->name
+                    ?? $employee->payroll_group
+                    ?? null,
+
+            'cost_center_name' => $employee->cost_center_name
+                ?? ($employee->costCenter ? trim(($employee->costCenter->code ?? '') . ' - ' . ($employee->costCenter->name_ar ?? ''), ' -') : null)
+                    ?? $employee->cost_center
+                    ?? null,
+        ];
     }
 
     private function eligibleEmployees(Carbon $periodStart, Carbon $periodEnd, PayrollPeriod $payrollPeriod)
@@ -351,6 +597,14 @@ class PayrollPeriodController extends Controller
          * لذلك نجلب الموظفين ضمن نطاق مجموعة الرواتب ثم نفلتر فعليًا داخل employmentEligibility().
          */
         $query = Employee::query()
+            ->with([
+                'department',
+                'position',
+                'nationality',
+                'salaryPaymentMethod',
+                'payrollGroup',
+                'costCenter',
+            ])
             ->where(function ($query) {
                 $query->whereNull('payroll_status')
                     ->orWhere('payroll_status', 'included');

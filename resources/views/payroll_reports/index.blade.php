@@ -83,6 +83,15 @@
             cursor: pointer;
         }
 
+        .payslip-btn {
+            padding: 6px 10px;
+            border-radius: 10px;
+            font-size: 9px;
+            line-height: 1;
+            white-space: nowrap;
+            min-width: 48px;
+        }
+
         .primary { background: #6d5bd0; color: #fff; }
         .green { background: #16a34a; color: #fff; }
         .soft { background: #ede9fe; color: #4c3b91; }
@@ -408,7 +417,8 @@
                     <thead>
                     <tr>
                         <th style="width:11%">الموظف</th>
-                        <th>القسم</th>
+                        <th>حالة الموظف</th>
+                        <th>طريقة الصرف</th>
                         <th>تاريخ الاستحقاق</th>
                         <th>أيام الاستحقاق</th>
                         <th>الراتب الأساسي</th>
@@ -424,10 +434,92 @@
                     <tbody>
                     @forelse($selectedPeriod->items as $item)
                         @php
+                            $employee = $item->employee;
+
                             /*
-                             * تصحيح تاريخ وأيام الاستحقاق في صفحة التقرير:
-                             * نحسبها للعرض من تاريخ المسير + تاريخ مباشرة الموظف + تاريخ نهاية الخدمة.
-                             * هذا يمنع ظهور تواريخ أو أيام قديمة إذا كانت payroll_items محفوظة بقيم غير محدثة.
+                             * بيانات الموظف:
+                             * نقرأ من Snapshot داخل payroll_items أولًا،
+                             * ثم من ملف الموظف كبديل إذا كان المسير قديمًا.
+                             */
+                            $nationalityName =
+                                $item->employee_nationality
+                                ?? $employee?->nationality?->name_ar
+                                ?? $employee?->nationality?->name
+                                ?? $employee?->nationality_name
+                                ?? $employee?->nationality
+                                ?? '-';
+
+                            $positionName =
+                                $item->employee_position
+                                ?? $employee?->position?->title
+                                ?? $employee?->position?->name_ar
+                                ?? $employee?->position?->name
+                                ?? $employee?->position_name
+                                ?? $employee?->job_title
+                                ?? '-';
+
+                            $departmentName =
+                                $item->employee_department
+                                ?? $employee?->department?->name
+                                ?? $employee?->department?->name_ar
+                                ?? $employee?->department_name
+                                ?? '-';
+
+                            $employeeStatusText =
+                                $item->employee_status_text
+                                ?? $item->employment_status_note
+                                ?? null;
+
+                            if (!$employeeStatusText || trim((string) $employeeStatusText) === '-') {
+                                $employeeStatusText = match ((string) ($employee?->status ?? '')) {
+                                    'active' => 'نشط',
+                                    'inactive' => 'غير نشط',
+                                    'terminated' => 'منتهي الخدمة',
+                                    'resigned' => 'مستقيل',
+                                    'suspended' => 'موقوف',
+                                    'on_leave' => 'في إجازة',
+                                    default => null,
+                                };
+                            }
+
+                            if (!$employeeStatusText) {
+                                $employeeStatusText = match ((string) ($employee?->payroll_status ?? '')) {
+                                    'included' => 'مدرج في مسير الرواتب',
+                                    'excluded' => 'مستبعد من مسير الرواتب',
+                                    default => 'نشط طوال الفترة',
+                                };
+                            }
+
+                            $paymentMethodEmployee =
+                                $item->salary_payment_method_name
+                                ?? $employee?->salary_payment_method_name
+                                ?? $employee?->salaryPaymentMethod?->name_ar
+                                ?? $employee?->salaryPaymentMethod?->name
+                                ?? $employee?->paymentMethod?->name_ar
+                                ?? $employee?->paymentMethod?->name
+                                ?? $employee?->salary_payment_method
+                                ?? $paymentMethodName
+                                ?? '-';
+
+                            $payrollGroupName =
+                                $item->payroll_group_name
+                                ?? $employee?->payroll_group_name
+                                ?? $employee?->payrollGroup?->name_ar
+                                ?? $employee?->payrollGroup?->name
+                                ?? $employee?->payroll_group
+                                ?? '-';
+
+                            $costCenterName =
+                                $item->cost_center_name
+                                ?? $employee?->cost_center_name
+                                ?? $employee?->costCenter?->name_ar
+                                ?? $employee?->costCenter?->name
+                                ?? $employee?->cost_center
+                                ?? '-';
+
+                            /*
+                             * تاريخ وأيام الاستحقاق:
+                             * نقرأ التاريخ المخزن في Snapshot أولًا ثم نصحح بحسب تاريخ التعيين ونهاية الخدمة.
                              */
                             $periodStart = $selectedPeriod->start_date
                                 ? \Carbon\Carbon::parse($selectedPeriod->start_date)->startOfDay()
@@ -437,12 +529,12 @@
                                 ? \Carbon\Carbon::parse($selectedPeriod->end_date)->startOfDay()
                                 : null;
 
-                            $employeeHireDate = $item->employee?->hire_date
-                                ? \Carbon\Carbon::parse($item->employee->hire_date)->startOfDay()
+                            $employeeHireDate = $employee?->hire_date
+                                ? \Carbon\Carbon::parse($employee->hire_date)->startOfDay()
                                 : null;
 
-                            $employeeTerminationDate = $item->employee?->termination_date
-                                ? \Carbon\Carbon::parse($item->employee->termination_date)->startOfDay()
+                            $employeeTerminationDate = $employee?->termination_date
+                                ? \Carbon\Carbon::parse($employee->termination_date)->startOfDay()
                                 : null;
 
                             $eligibleStart = $item->eligible_start_date
@@ -516,7 +608,8 @@
 
                         <tr>
                             <td>{{ $item->employee_name }}<br><small>{{ $item->employee_number }}</small></td>
-                            <td>{{ $item->employee?->department?->name ?? '-' }}</td>
+                            <td>{{ $employeeStatusText }}</td>
+                            <td>{{ $paymentMethodEmployee }}</td>
                             <td>
                                 {{ $eligibleStartText }}
                                 <br>
@@ -528,6 +621,7 @@
 
                                 @if($needsRecalculateWarning)
                                     <span class="warning-note">
+                                        المحفوظ: {{ $storedPayableDays }} يوم - أعد الاحتساب
                                     </span>
                                 @endif
                             </td>
@@ -564,7 +658,7 @@
                             <td><strong>{{ number_format($item->net_salary, 2) }}</strong></td>
                             <td>
                                 @if(auth()->user()->hasPermission('payroll_reports.payslip'))
-                                    <a class="btn2 soft" target="_blank" href="{{ route('payroll-reports.payslip', $item) }}">
+                                    <a class="btn2 soft payslip-btn" target="_blank" href="{{ route('payroll-reports.payslip', $item) }}">
                                         قسيمة
                                     </a>
                                 @else
@@ -574,7 +668,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12">لا توجد تفاصيل لهذا المسير.</td>
+                            <td colspan="13">لا توجد تفاصيل لهذا المسير.</td>
                         </tr>
                     @endforelse
                     </tbody>

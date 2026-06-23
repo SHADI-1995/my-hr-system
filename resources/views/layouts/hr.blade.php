@@ -704,6 +704,23 @@
                                 <span>تقارير الرواتب</span>
                             </a>
                         @endif
+                            @if(auth()->user()->hasPermission('payroll_bank_transfers.view'))
+                                <a href="{{ route('payroll-bank-transfers.index') }}"
+                                   class="{{ request()->routeIs('payroll-bank-transfers.*') ? 'active' : '' }}">
+                                    <i class="fas fa-building-columns"></i>
+                                    كشف تحويل الرواتب
+                                </a>
+                            @endif
+
+
+                            @if(auth()->user()->hasPermission('payroll_bank_transfer_batches.view'))
+                                <a href="{{ route('payroll-bank-transfer-batches.index') }}"
+                                   class="{{ request()->routeIs('payroll-bank-transfer-batches.*') ? 'active' : '' }}">
+                                    <i class="fas fa-money-check-dollar"></i>
+                                    دفعات تحويل الرواتب
+                                </a>
+                            @endif
+
 
                         @if(auth()->user()->hasPermission('salary_advances.view'))
                             <a href="{{ route('salary-advances.index') }}" class="{{ request()->routeIs('salary-advances.*') ? 'active' : '' }}">
@@ -759,6 +776,14 @@
                                 <span>إعدادات الرواتب</span>
                             </a>
                         @endif
+                            @if(auth()->user()->hasPermission('payroll_period_logs.view'))
+                                <a href="{{ route('payroll-period-logs.index') }}"
+                                   class="{{ request()->routeIs('payroll-period-logs.*') ? 'active' : '' }}">
+                                    <i class="fas fa-clock-rotate-left"></i>
+                                    سجل حركات المسير
+                                </a>
+                            @endif
+
 
                     </div>
                 </details>

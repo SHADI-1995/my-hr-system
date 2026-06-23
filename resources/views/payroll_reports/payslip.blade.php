@@ -194,6 +194,57 @@
         default => $payrollSetting->default_payment_method ?? '-',
     };
 
+    $nationalityName =
+        $payrollItem->employee_nationality
+        ?? $employee?->nationality?->name_ar
+        ?? $employee?->nationality?->name
+        ?? $employee?->nationality_name
+        ?? $employee?->nationality
+        ?? '-';
+
+    $positionName =
+        $payrollItem->employee_position
+        ?? $employee?->position?->title
+        ?? $employee?->position?->name_ar
+        ?? $employee?->position?->name
+        ?? $employee?->position_name
+        ?? $employee?->job_title
+        ?? '-';
+
+    $departmentName =
+        $payrollItem->employee_department
+        ?? $employee?->department?->name
+        ?? $employee?->department?->name_ar
+        ?? $employee?->department_name
+        ?? '-';
+
+    $paymentMethodEmployee =
+        $payrollItem->salary_payment_method_name
+        ?? $employee?->salary_payment_method_name
+        ?? $employee?->salaryPaymentMethod?->name_ar
+        ?? $employee?->salaryPaymentMethod?->name
+        ?? $employee?->paymentMethod?->name_ar
+        ?? $employee?->paymentMethod?->name
+        ?? $employee?->salary_payment_method
+        ?? $paymentMethodName
+        ?? '-';
+
+    $payrollGroupName =
+        $payrollItem->payroll_group_name
+        ?? $employee?->payrollGroup?->name_ar
+        ?? $employee?->payrollGroup?->name
+        ?? $employee?->payroll_group_name
+        ?? $employee?->payroll_group
+        ?? '-';
+
+    $costCenterName =
+        $payrollItem->cost_center_name
+        ?? $employee?->costCenter?->name_ar
+        ?? $employee?->costCenter?->name
+        ?? $employee?->cost_center_name
+        ?? $employee?->cost_center
+        ?? '-';
+
     $period = $payrollItem->payrollPeriod;
 
     $periodStart = $period?->start_date
@@ -260,7 +311,7 @@
     $eligibleStartText = $eligibleStart ? $eligibleStart->format('Y-m-d') : '-';
     $eligibleEndText = $eligibleEnd ? $eligibleEnd->format('Y-m-d') : '-';
 
-    $employeeStatusText = $payrollItem->employment_status_note;
+    $employeeStatusText = $payrollItem->employee_status_text ?? $payrollItem->employment_status_note;
 
     if (!$employeeStatusText || trim((string) $employeeStatusText) === '-') {
         $employeeStatusText = match ((string) ($payrollItem->employee?->status ?? '')) {
@@ -311,25 +362,6 @@
         <button class="print-btn no-print" onclick="window.print()">طباعة</button>
     </div>
 
-    <div class="settings-grid">
-        <div class="box">
-            <small>طريقة احتساب الأيام</small>
-            <strong>{{ $salaryDayCalculationName }}</strong>
-        </div>
-        <div class="box">
-            <small>طريقة الصرف</small>
-            <strong>{{ $paymentMethodName }}</strong>
-        </div>
-        <div class="box">
-            <small>التقريب</small>
-            <strong>{{ $payrollSetting->rounding_decimals ?? 2 }} خانات</strong>
-        </div>
-        <div class="box">
-            <small>الصافي السالب</small>
-            <strong>{{ ($payrollSetting->allow_negative_net_salary ?? false) ? 'مسموح' : 'غير مسموح' }}</strong>
-        </div>
-    </div>
-
     <div class="info-grid">
         <div class="box">
             <small>رقم الموظف</small>
@@ -340,12 +372,32 @@
             <strong>{{ $payrollItem->employee_name }}</strong>
         </div>
         <div class="box">
-            <small>القسم</small>
-            <strong>{{ $payrollItem->employee?->department?->name ?? '-' }}</strong>
+            <small>الجنسية</small>
+            <strong>{{ $nationalityName }}</strong>
         </div>
         <div class="box">
             <small>الوظيفة</small>
-            <strong>{{ $payrollItem->employee?->position?->title ?? '-' }}</strong>
+            <strong>{{ $positionName }}</strong>
+        </div>
+        <div class="box">
+            <small>القسم</small>
+            <strong>{{ $departmentName }}</strong>
+        </div>
+        <div class="box">
+            <small>حالة الموظف في المسير</small>
+            <strong>{{ $employeeStatusText }}</strong>
+        </div>
+        <div class="box">
+            <small>طريقة صرف الراتب</small>
+            <strong>{{ $paymentMethodEmployee }}</strong>
+        </div>
+        <div class="box">
+            <small>مجموعة الرواتب</small>
+            <strong>{{ $payrollGroupName }}</strong>
+        </div>
+        <div class="box">
+            <small>مركز التكلفة</small>
+            <strong>{{ $costCenterName }}</strong>
         </div>
         <div class="box">
             <small>تاريخ الاستحقاق</small>
@@ -357,12 +409,9 @@
 
             @if($needsRecalculateWarning)
                 <div class="warning-note no-print">
+                    ملاحظة: القيمة المحفوظة سابقًا {{ $storedPayableDays }} يوم. أعد احتساب المسير لتحديث قاعدة البيانات.
                 </div>
             @endif
-        </div>
-        <div class="box">
-            <small>حالة الموظف في المسير</small>
-            <strong>{{ $employeeStatusText }}</strong>
         </div>
     </div>
 
