@@ -1047,7 +1047,29 @@ class PermissionSeeder extends Seeder
                 'module' => 'payroll_bank_transfer_batches',
             ],
 
+            [
+                'name' => 'تصدير دفعات تحويل الرواتب',
+                'code' => 'payroll_bank_transfer_batches.export',
+                'module' => 'payroll_bank_transfer_batches',
+            ],
 
+
+            /*
+                       |--------------------------------------------------------------------------
+                       | تقارير الرواتب من قائمه التقارير
+                       |--------------------------------------------------------------------------
+                       */
+
+            [
+                'name' => 'عرض تقارير الرواتب الشاملة',
+                'code' => 'payroll_reports_hub.view',
+                'module' => 'payroll_reports_hub',
+            ],
+            [
+                'name' => 'تصدير تقارير الرواتب الشاملة',
+                'code' => 'payroll_reports_hub.export',
+                'module' => 'payroll_reports_hub',
+            ],
 
             /*
                         |--------------------------------------------------------------------------

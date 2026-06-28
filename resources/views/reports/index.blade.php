@@ -853,6 +853,12 @@
                                     تقارير إدارة الإجازات
                                 </option>
                             @endif
+
+                            @if(auth()->user()->hasPermission('payroll_reports_hub.view'))
+                                <option value="payroll_reports_hub" data-url="{{ route('payroll-reports-hub.index') }}">
+                                    تقارير الرواتب الشاملة
+                                </option>
+                            @endif
                             @if(auth()->user()->hasPermission('leave_reports.view'))
                                 <option value="leave_report" {{ $selectedReport === 'leave_report' ? 'selected' : '' }}>تقرير الإجازات</option>
                             @endif
@@ -1513,7 +1519,14 @@
             reportSelect.addEventListener('change', function () {
                 const option = this.options[this.selectedIndex];
 
-                if (option && option.value === 'leave_reports_hub' && option.dataset.url) {
+                if (
+                    option &&
+                    (
+                        option.value === 'leave_reports_hub' ||
+                        option.value === 'payroll_reports_hub'
+                    ) &&
+                    option.dataset.url
+                ) {
                     window.location.href = option.dataset.url;
                 }
             });

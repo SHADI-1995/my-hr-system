@@ -558,6 +558,41 @@
             gap: 8px;
         }
 
+
+        /* ===== Sidebar improvements ===== */
+        .sidebar { transition: transform .28s ease, width .28s ease; z-index: 1000; }
+        .content { transition: margin-right .28s ease; }
+        .sidebar-toggle-btn {
+            position: fixed; top: 18px; right: 302px; width: 45px; height: 45px;
+            border: none; border-radius: 14px; background: linear-gradient(135deg, #6676de, #7b5cc8);
+            color: white; box-shadow: 0 12px 28px rgba(76, 59, 145, .28); cursor: pointer;
+            z-index: 1200; display: inline-flex; align-items: center; justify-content: center; transition: .28s ease;
+        }
+        .sidebar-toggle-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(76, 59, 145, .34); }
+        body.sidebar-collapsed .sidebar { transform: translateX(320px); }
+        body.sidebar-collapsed .content { margin-right: 0; }
+        body.sidebar-collapsed .sidebar-toggle-btn { right: 18px; }
+        .sidebar-backdrop { position: fixed; inset: 0; background: rgba(17,24,39,.50); z-index: 900; display: none; }
+        .sidebar-dropdown { border-radius: 15px; background: rgba(0,0,0,.05); padding: 4px; }
+        .sidebar-dropdown[open] { background: rgba(255,255,255,.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,.13); }
+        .settings-title { cursor: pointer; user-select: none; }
+        .settings-title span { flex: 1; }
+        .submenu-section-title {
+            margin: 12px 4px 8px; padding: 8px 10px; color: rgba(255,255,255,.78);
+            background: rgba(255,255,255,.08); border-radius: 10px; font-size: 12px; font-weight: bold;
+        }
+        .submenu-divider { height: 1px; margin: 10px 4px; background: rgba(255,255,255,.16); }
+        .settings-submenu a { position: relative; }
+        .settings-submenu a span { display: inline-block; }
+        .settings-submenu a.active { background: rgba(255,255,255,.22); box-shadow: inset 3px 0 0 rgba(255,255,255,.85); }
+        .menu-item-hidden { display: none !important; }
+        .sidebar-empty-search {
+            display: none; margin: 12px 8px; padding: 12px; border-radius: 12px;
+            background: rgba(0,0,0,.12); color: rgba(255,255,255,.85); font-size: 13px;
+            text-align: center; font-weight: bold;
+        }
+        .search-box.has-value input { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.38); }
+
         @media(max-width:900px) {
             .sidebar {
                 position: relative;
@@ -596,14 +631,33 @@
                 flex: 1;
             }
         }
+
+        @media(max-width:900px) {
+            .sidebar {
+                position: fixed !important; width: 285px !important; right: 0; top: 0; bottom: 0;
+                transform: translateX(320px);
+            }
+            body.sidebar-mobile-open .sidebar { transform: translateX(0); }
+            body.sidebar-mobile-open .sidebar-backdrop { display: block; }
+            .sidebar-toggle-btn { right: 18px; top: 14px; }
+            .content { margin-right: 0 !important; padding-top: 72px; }
+            body.sidebar-collapsed .sidebar { transform: translateX(320px); }
+        }
+
     </style>
 </head>
 
 <body>
 
+<button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" title="إظهار / إخفاء القائمة الجانبية">
+    <i class="fas fa-bars"></i>
+</button>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 <div class="layout">
 
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
 
         <div class="logo-box">
             <div>
@@ -616,7 +670,7 @@
 
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="البحث في القائمة">
+            <input type="text" id="sidebarSearchInput" placeholder="البحث في القائمة الجانبية">
         </div>
         <nav class="menu">
 
@@ -652,37 +706,94 @@
                     الحضور والانصراف
                 </a>
             @endif
-            @if(auth()->user()->hasPermission('leave_balances.view'))
-                <a href="{{ route('leave-balances.index') }}" class="sidebar-link {{ request()->routeIs('leave-balances.*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>أرصدة الإجازات</span>
-                </a>
+
+            {{-- Leaves sidebar dropdown - Organized --}}
+            @if(
+                auth()->user()->hasPermission('leave_requests.view') ||
+                auth()->user()->hasPermission('leave_balances.view') ||
+                auth()->user()->hasPermission('leave_requests.manager_approval') ||
+                auth()->user()->hasPermission('leave_requests.hr_approval')
+            )
+                <details class="settings-group sidebar-dropdown"
+                         data-dropdown-key="leaves"
+                    {{ request()->routeIs('leave-requests.*') ||
+                       request()->routeIs('leave-balances.*') ? 'open' : '' }}>
+
+                    <summary class="settings-title payroll-summary">
+                        <i class="fas fa-calendar-days"></i>
+                        <span>الإجازات</span>
+                        <i class="fas fa-chevron-down payroll-arrow"></i>
+                    </summary>
+
+                    <div class="settings-submenu">
+                        <div class="submenu-section-title">طلبات وأرصدة الإجازات</div>
+
+                        @if(auth()->user()->hasPermission('leave_requests.view'))
+                            <a href="{{ route('leave-requests.index') }}" class="{{ request()->routeIs('leave-requests.*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-days"></i>
+                                <span>طلبات الإجازات</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('leave_balances.view'))
+                            <a href="{{ route('leave-balances.index') }}" class="{{ request()->routeIs('leave-balances.*') ? 'active' : '' }}">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>أرصدة الإجازات</span>
+                            </a>
+                        @endif
+
+                        <div class="submenu-divider"></div>
+                        <div class="submenu-section-title">موافقات الإجازات</div>
+
+                        @if(auth()->user()->hasPermission('leave_requests.manager_approval'))
+                            <a href="{{ route('manager-leave-approvals.index') }}" class="{{ request()->routeIs('manager-leave-approvals.*') ? 'active' : '' }}">
+                                <i class="fas fa-user-check"></i>
+                                <span>موافقة المدير المباشر</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('leave_requests.hr_approval'))
+                            <a href="{{ route('hr-leave-approvals.index') }}" class="{{ request()->routeIs('hr-leave-approvals.*') ? 'active' : '' }}">
+                                <i class="fas fa-user-shield"></i>
+                                <span>موافقة الموارد البشرية</span>
+                            </a>
+                        @endif
+                    </div>
+                </details>
             @endif
 
-
-            @if(auth()->user()->hasPermission('leave_requests.view'))
-                <a href="{{ route('leave-requests.index') }}" class="{{ request()->routeIs('leave-requests.*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-days"></i>
-                    الإجازات
-                </a>
-            @endif
-
-            {{-- Payroll sidebar dropdown - Permission Ready --}}
+            {{-- Payroll sidebar dropdown - Organized --}}
             @if(
                 auth()->user()->hasPermission('payroll_periods.view') ||
                 auth()->user()->hasPermission('payroll_reports.view') ||
+                auth()->user()->hasPermission('payroll_reports_hub.view') ||
+                auth()->user()->hasPermission('payroll_bank_transfers.view') ||
+                auth()->user()->hasPermission('payroll_bank_transfer_batches.view') ||
                 auth()->user()->hasPermission('salary_advances.view') ||
                 auth()->user()->hasPermission('employee_deductions.view') ||
                 auth()->user()->hasPermission('employee_suspensions.view') ||
-                auth()->user()->hasPermission('payroll_settings.view')
+                auth()->user()->hasPermission('salary_payment_methods.view') ||
+                auth()->user()->hasPermission('deduction_types.view') ||
+                auth()->user()->hasPermission('payroll_groups.view') ||
+                auth()->user()->hasPermission('cost_centers.view') ||
+                auth()->user()->hasPermission('payroll_period_logs.view')
             )
-                <details class="settings-group"
+                <details class="settings-group sidebar-dropdown"
+                         data-dropdown-key="payroll"
                     {{ request()->routeIs('payroll-periods.*') ||
                        request()->routeIs('payroll-reports.*') ||
+                       request()->routeIs('payroll-reports-hub.*') ||
+                       request()->routeIs('payroll-bank-transfers.*') ||
+                       request()->routeIs('payroll-bank-transfer-batches.*') ||
                        request()->routeIs('salary-advances.*') ||
                        request()->routeIs('employee-deductions.*') ||
                        request()->routeIs('employee-suspensions.*') ||
-                       request()->routeIs('payroll-settings.*') ? 'open' : '' }}>
+                       request()->routeIs('salary-payment-methods.*') ||
+                       request()->routeIs('deduction-types.*') ||
+                       request()->routeIs('payroll-groups.*') ||
+                       request()->routeIs('cost-centers.*') ||
+                       request()->routeIs('payroll-settings.*') ||
+                       request()->routeIs('payroll-period-logs.*') ? 'open' : '' }}>
 
                     <summary class="settings-title payroll-summary">
                         <i class="fas fa-money-bill-wave"></i>
@@ -691,10 +802,19 @@
                     </summary>
 
                     <div class="settings-submenu">
+                        <div class="submenu-section-title">المسير والتقارير</div>
+
                         @if(auth()->user()->hasPermission('payroll_periods.view'))
                             <a href="{{ route('payroll-periods.index') }}" class="{{ request()->routeIs('payroll-periods.*') ? 'active' : '' }}">
                                 <i class="fas fa-money-check-dollar"></i>
                                 <span>مسير الرواتب</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('payroll_reports_hub.view'))
+                            <a href="{{ route('payroll-reports-hub.index') }}" class="{{ request()->routeIs('payroll-reports-hub.*') ? 'active' : '' }}">
+                                <i class="fas fa-chart-line"></i>
+                                <span>تقارير الرواتب الشاملة</span>
                             </a>
                         @endif
 
@@ -704,23 +824,33 @@
                                 <span>تقارير الرواتب</span>
                             </a>
                         @endif
-                            @if(auth()->user()->hasPermission('payroll_bank_transfers.view'))
-                                <a href="{{ route('payroll-bank-transfers.index') }}"
-                                   class="{{ request()->routeIs('payroll-bank-transfers.*') ? 'active' : '' }}">
-                                    <i class="fas fa-building-columns"></i>
-                                    كشف تحويل الرواتب
-                                </a>
-                            @endif
 
+                        @if(auth()->user()->hasPermission('payroll_period_logs.view'))
+                            <a href="{{ route('payroll-period-logs.index') }}" class="{{ request()->routeIs('payroll-period-logs.*') ? 'active' : '' }}">
+                                <i class="fas fa-clock-rotate-left"></i>
+                                <span>سجل حركات المسير</span>
+                            </a>
+                        @endif
 
-                            @if(auth()->user()->hasPermission('payroll_bank_transfer_batches.view'))
-                                <a href="{{ route('payroll-bank-transfer-batches.index') }}"
-                                   class="{{ request()->routeIs('payroll-bank-transfer-batches.*') ? 'active' : '' }}">
-                                    <i class="fas fa-money-check-dollar"></i>
-                                    دفعات تحويل الرواتب
-                                </a>
-                            @endif
+                        <div class="submenu-divider"></div>
+                        <div class="submenu-section-title">التحويل البنكي</div>
 
+                        @if(auth()->user()->hasPermission('payroll_bank_transfers.view'))
+                            <a href="{{ route('payroll-bank-transfers.index') }}" class="{{ request()->routeIs('payroll-bank-transfers.*') ? 'active' : '' }}">
+                                <i class="fas fa-building-columns"></i>
+                                <span>كشف تحويل الرواتب</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('payroll_bank_transfer_batches.view'))
+                            <a href="{{ route('payroll-bank-transfer-batches.index') }}" class="{{ request()->routeIs('payroll-bank-transfer-batches.*') ? 'active' : '' }}">
+                                <i class="fas fa-money-check-dollar"></i>
+                                <span>دفعات تحويل الرواتب</span>
+                            </a>
+                        @endif
+
+                        <div class="submenu-divider"></div>
+                        <div class="submenu-section-title">السلف والخصومات</div>
 
                         @if(auth()->user()->hasPermission('salary_advances.view'))
                             <a href="{{ route('salary-advances.index') }}" class="{{ request()->routeIs('salary-advances.*') ? 'active' : '' }}">
@@ -743,6 +873,16 @@
                             </a>
                         @endif
 
+                        @can('deduction_types.view')
+                            <a href="{{ route('deduction-types.index') }}" class="{{ request()->routeIs('deduction-types.*') ? 'active' : '' }}">
+                                <i class="fas fa-tags"></i>
+                                <span>أنواع الاستقطاعات</span>
+                            </a>
+                        @endcan
+
+                        <div class="submenu-divider"></div>
+                        <div class="submenu-section-title">إعدادات وهيكلة الرواتب</div>
+
                         @if(auth()->user()->hasPermission('salary_payment_methods.view'))
                             <a href="{{ route('salary-payment-methods.index') }}" class="{{ request()->routeIs('salary-payment-methods.*') ? 'active' : '' }}">
                                 <i class="fas fa-money-check-dollar"></i>
@@ -750,12 +890,6 @@
                             </a>
                         @endif
 
-                        @can('deduction_types.view')
-                            <a href="{{ route('deduction-types.index') }}" class="submenu-link {{ request()->routeIs('deduction-types.*') ? 'active' : '' }}">
-                                <i class="fas fa-tags"></i>
-                                <span>أنواع الاستقطاعات</span>
-                            </a>
-                        @endcan
                         @if(auth()->user()->hasPermission('payroll_groups.view'))
                             <a href="{{ route('payroll-groups.index') }}" class="{{ request()->routeIs('payroll-groups.*') ? 'active' : '' }}">
                                 <i class="fas fa-users-gear"></i>
@@ -769,22 +903,6 @@
                                 <span>مراكز التكلفة</span>
                             </a>
                         @endif
-
-                        @if(auth()->user()->hasPermission('payroll_settings.view'))
-                            <a href="{{ route('payroll-settings.edit') }}" class="{{ request()->routeIs('payroll-settings.*') ? 'active' : '' }}">
-                                <i class="fas fa-sliders"></i>
-                                <span>إعدادات الرواتب</span>
-                            </a>
-                        @endif
-                            @if(auth()->user()->hasPermission('payroll_period_logs.view'))
-                                <a href="{{ route('payroll-period-logs.index') }}"
-                                   class="{{ request()->routeIs('payroll-period-logs.*') ? 'active' : '' }}">
-                                    <i class="fas fa-clock-rotate-left"></i>
-                                    سجل حركات المسير
-                                </a>
-                            @endif
-
-
                     </div>
                 </details>
             @endif
@@ -813,39 +931,28 @@
                 auth()->user()->hasPermission('users.view') ||
                 auth()->user()->hasPermission('roles.view') ||
                 auth()->user()->hasPermission('nationalities.view') ||
-                auth()->user()->hasPermission('leave_policies.view') ||
-                auth()->user()->hasPermission('payroll_settings.view')
+                auth()->user()->hasPermission('leave_policies.view')
             )
-                <div class="settings-group">
-                    <div class="settings-title">
+                <details class="settings-group sidebar-dropdown"
+                         data-dropdown-key="settings"
+                    {{ request()->routeIs('users.*') ||
+                       request()->routeIs('roles.*') ||
+                       request()->routeIs('nationalities.*') ||
+                       request()->routeIs('leave-types.*') ||
+                       request()->routeIs('official-holidays.*') ||
+                       request()->routeIs('leave-policies.*') ? 'open' : '' }}>
+
+                    <summary class="settings-title payroll-summary">
                         <i class="fas fa-gear"></i>
                         <span>الإعدادات</span>
-                    </div>
+                        <i class="fas fa-chevron-down payroll-arrow"></i>
+                    </summary>
 
                     <div class="settings-submenu">
                         @if(auth()->user()->hasPermission('users.view'))
                             <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
                                 <i class="fas fa-user-shield"></i>
                                 <span>المستخدمين</span>
-                            </a>
-                        @endif
-
-                        @if(auth()->user()->hasPermission('payroll_settings.view'))
-                            <a href="{{ route('payroll-settings.edit') }}" class="{{ request()->routeIs('payroll-settings.*') ? 'active' : '' }}">
-                                <i class="fas fa-sliders"></i>
-                                <span>إعدادات الرواتب</span>
-                            </a>
-                        @endif
-                        @if(auth()->user()->hasPermission('leave_requests.manager_approval'))
-                            <a href="{{ route('manager-leave-approvals.index') }}" class="sidebar-link">
-                                <i class="fas fa-user-check"></i>
-                                <span>موافقات المدير المباشر</span>
-                            </a>
-                        @endif
-                        @if(auth()->user()->hasPermission('leave_requests.hr_approval'))
-                            <a href="{{ route('hr-leave-approvals.index') }}" class="sidebar-link">
-                                <i class="fas fa-user-shield"></i>
-                                <span>موافقات الموارد البشرية</span>
                             </a>
                         @endif
 
@@ -884,9 +991,10 @@
 
 
                     </div>
-                </div>
+                </details>
             @endif
 
+            <div class="sidebar-empty-search" id="sidebarEmptySearch">لا توجد نتائج مطابقة</div>
         </nav>
 
         <div class="user-card">
@@ -1023,32 +1131,126 @@
     }
 
 </script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const sidebar = document.querySelector(".sidebar");
+        const sidebar = document.querySelector("#sidebar");
+        const body = document.body;
+        const toggleBtn = document.querySelector("#sidebarToggleBtn");
+        const backdrop = document.querySelector("#sidebarBackdrop");
+        const searchInput = document.querySelector("#sidebarSearchInput");
+        const emptySearch = document.querySelector("#sidebarEmptySearch");
 
-        if (!sidebar) {
-            return;
+        if (!sidebar) return;
+
+        const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+
+        if (localStorage.getItem("sidebar_collapsed") === "1" && !isMobile()) {
+            body.classList.add("sidebar-collapsed");
         }
+
+        function updateToggleIcon() {
+            const icon = toggleBtn?.querySelector("i");
+            if (!icon) return;
+
+            if (isMobile()) {
+                icon.className = body.classList.contains("sidebar-mobile-open") ? "fas fa-xmark" : "fas fa-bars";
+            } else {
+                icon.className = body.classList.contains("sidebar-collapsed") ? "fas fa-bars" : "fas fa-angles-right";
+            }
+        }
+
+        toggleBtn?.addEventListener("click", function () {
+            if (isMobile()) {
+                body.classList.toggle("sidebar-mobile-open");
+                updateToggleIcon();
+                return;
+            }
+
+            body.classList.toggle("sidebar-collapsed");
+            localStorage.setItem("sidebar_collapsed", body.classList.contains("sidebar-collapsed") ? "1" : "0");
+            updateToggleIcon();
+        });
+
+        backdrop?.addEventListener("click", function () {
+            body.classList.remove("sidebar-mobile-open");
+            updateToggleIcon();
+        });
+
+        window.addEventListener("resize", function () {
+            if (!isMobile()) body.classList.remove("sidebar-mobile-open");
+            updateToggleIcon();
+        });
+
+        updateToggleIcon();
 
         const savedScroll = sessionStorage.getItem("sidebar_scroll_top");
-
-        if (savedScroll !== null) {
-            sidebar.scrollTop = parseInt(savedScroll, 10);
-        }
+        if (savedScroll !== null) sidebar.scrollTop = parseInt(savedScroll, 10);
 
         sidebar.addEventListener("scroll", function () {
             sessionStorage.setItem("sidebar_scroll_top", sidebar.scrollTop);
         });
 
-        const sidebarLinks = sidebar.querySelectorAll("a");
-
-        sidebarLinks.forEach(function (link) {
+        sidebar.querySelectorAll("a").forEach(function (link) {
             link.addEventListener("click", function () {
                 sessionStorage.setItem("sidebar_scroll_top", sidebar.scrollTop);
+                if (isMobile()) {
+                    body.classList.remove("sidebar-mobile-open");
+                    updateToggleIcon();
+                }
             });
+        });
+
+        sidebar.querySelectorAll("details.sidebar-dropdown[data-dropdown-key]").forEach(function (dropdown) {
+            const key = dropdown.dataset.dropdownKey;
+            const savedState = localStorage.getItem("sidebar_dropdown_" + key);
+
+            if (savedState === "open") dropdown.open = true;
+
+            dropdown.addEventListener("toggle", function () {
+                localStorage.setItem("sidebar_dropdown_" + key, dropdown.open ? "open" : "closed");
+            });
+        });
+
+        searchInput?.addEventListener("input", function () {
+            const term = this.value.trim().toLowerCase();
+            this.closest(".search-box")?.classList.toggle("has-value", term.length > 0);
+
+            let visibleCount = 0;
+
+            sidebar.querySelectorAll(".menu > a").forEach(function (link) {
+                const match = link.textContent.toLowerCase().includes(term);
+                link.classList.toggle("menu-item-hidden", term.length > 0 && !match);
+                if (term.length === 0 || match) visibleCount++;
+            });
+
+            sidebar.querySelectorAll("details.sidebar-dropdown").forEach(function (details) {
+                let hasVisibleChild = false;
+
+                details.querySelectorAll(".settings-submenu a").forEach(function (link) {
+                    const match = link.textContent.toLowerCase().includes(term);
+                    link.classList.toggle("menu-item-hidden", term.length > 0 && !match);
+                    if (term.length === 0 || match) hasVisibleChild = true;
+                });
+
+                details.classList.toggle("menu-item-hidden", term.length > 0 && !hasVisibleChild);
+
+                if (term.length > 0 && hasVisibleChild) {
+                    details.open = true;
+                    visibleCount++;
+                }
+
+                if (term.length === 0) {
+                    details.querySelectorAll(".settings-submenu a").forEach(link => link.classList.remove("menu-item-hidden"));
+                }
+            });
+
+            if (emptySearch) {
+                emptySearch.style.display = term.length > 0 && visibleCount === 0 ? "block" : "none";
+            }
         });
     });
 </script>
+
 </body>
 </html>

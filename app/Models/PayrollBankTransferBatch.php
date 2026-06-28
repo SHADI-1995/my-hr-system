@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,14 @@ class PayrollBankTransferBatch extends Model
         'sent_at',
         'confirmed_by',
         'confirmed_at',
+
+        /*
+         * بيانات تأكيد التحويل من البنك
+         */
+        'bank_reference',
+        'bank_transfer_date',
+        'confirmation_file',
+
         'cancelled_by',
         'cancelled_at',
         'notes',
@@ -31,8 +40,15 @@ class PayrollBankTransferBatch extends Model
         'generated_at' => 'datetime',
         'sent_at' => 'datetime',
         'confirmed_at' => 'datetime',
+        'bank_transfer_date' => 'date',
         'cancelled_at' => 'datetime',
     ];
+
+    /*
+     |--------------------------------------------------------------------------
+     | Relationships
+     |--------------------------------------------------------------------------
+     */
 
     public function payrollPeriod()
     {
@@ -59,6 +75,12 @@ class PayrollBankTransferBatch extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    /*
+     |--------------------------------------------------------------------------
+     | Display Accessors
+     |--------------------------------------------------------------------------
+     */
+
     public function getStatusTextAttribute(): string
     {
         return match ($this->status) {
@@ -81,6 +103,25 @@ class PayrollBankTransferBatch extends Model
         };
     }
 
+    /*
+     * رابط ملف إثبات التحويل المرفوع.
+     * يجب تنفيذ php artisan storage:link حتى يفتح الرابط من المتصفح.
+     */
+    public function getConfirmationFileUrlAttribute(): ?string
+    {
+        if (!$this->confirmation_file) {
+            return null;
+        }
+
+        return asset('storage/' . ltrim($this->confirmation_file, '/'));
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | Workflow Helpers
+     |--------------------------------------------------------------------------
+     */
+
     public function getCanSendAttribute(): bool
     {
         return $this->status === 'generated';
@@ -95,6 +136,12 @@ class PayrollBankTransferBatch extends Model
     {
         return in_array($this->status, ['generated', 'sent'], true);
     }
+
+    /*
+     |--------------------------------------------------------------------------
+     | Numbering
+     |--------------------------------------------------------------------------
+     */
 
     public static function generateNumber(): string
     {
