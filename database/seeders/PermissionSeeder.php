@@ -666,6 +666,42 @@ class PermissionSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
+            | Salary Advance Requests Workflow
+            |--------------------------------------------------------------------------
+            */
+            [
+                'name' => 'تقديم طلب سلفة من الموظف',
+                'code' => 'salary_advance_requests.create',
+                'module' => 'salary_advance_requests',
+            ],
+            [
+                'name' => 'عرض طلبات السلف الخاصة بالموظف',
+                'code' => 'salary_advance_requests.view_own',
+                'module' => 'salary_advance_requests',
+            ],
+            [
+                'name' => 'عرض جميع طلبات السلف',
+                'code' => 'salary_advance_requests.view_all',
+                'module' => 'salary_advance_requests',
+            ],
+            [
+                'name' => 'موافقة المدير المباشر على طلبات السلف',
+                'code' => 'salary_advance_requests.manager_approval',
+                'module' => 'salary_advance_requests',
+            ],
+            [
+                'name' => 'موافقة الموارد البشرية على طلبات السلف',
+                'code' => 'salary_advance_requests.hr_approval',
+                'module' => 'salary_advance_requests',
+            ],
+            [
+                'name' => 'إلغاء طلب سلفة',
+                'code' => 'salary_advance_requests.cancel',
+                'module' => 'salary_advance_requests',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
             | Payroll Periods & Salary Calculation
             |--------------------------------------------------------------------------
             */

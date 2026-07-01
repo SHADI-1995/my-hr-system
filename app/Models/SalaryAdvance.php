@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class SalaryAdvance extends Model
 {
     protected $fillable = [
+        'salary_advance_request_id',
         'employee_id',
         'advance_number',
         'amount',
@@ -33,6 +34,11 @@ class SalaryAdvance extends Model
         'approved_at' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
+
+    public function request()
+    {
+        return $this->belongsTo(SalaryAdvanceRequest::class, 'salary_advance_request_id');
+    }
 
     public function employee()
     {

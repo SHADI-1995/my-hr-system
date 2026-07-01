@@ -28,6 +28,9 @@ use App\Http\Controllers\ManagerLeaveApprovalController;
 use App\Http\Controllers\HrLeaveApprovalController;
 use App\Http\Controllers\LeaveReportsHubController;
 use App\Http\Controllers\SalaryAdvanceController;
+use App\Http\Controllers\EmployeePortalSalaryAdvanceRequestController;
+use App\Http\Controllers\ManagerSalaryAdvanceApprovalController;
+use App\Http\Controllers\HrSalaryAdvanceApprovalController;
 use App\Http\Controllers\EmployeeDeductionController;
 use App\Http\Controllers\EmployeeSuspensionController;
 use App\Http\Controllers\PayrollPeriodController;
@@ -40,8 +43,14 @@ use App\Http\Controllers\PayrollSettingController;
 use App\Http\Controllers\PayrollPeriodLogController;
 use App\Http\Controllers\PayrollBankTransferController;
 use App\Http\Controllers\PayrollReportsHubController;
-
 use App\Http\Controllers\PayrollBankTransferBatchController;
+use App\Http\Controllers\SalaryAdvanceRequestAdminController;
+
+
+
+
+
+
 Route::redirect('/', '/login');
 
 Route::get('/dashboard', function () {
@@ -152,6 +161,28 @@ Route::prefix('employee-portal')->name('employee-portal.')->group(function () {
     Route::get('/leave-requests', [EmployeePortalLeaveRequestController::class, 'index'])->name('leave-requests.index');
     Route::get('/leave-requests/create', [EmployeePortalLeaveRequestController::class, 'create'])->name('leave-requests.create');
     Route::post('/leave-requests', [EmployeePortalLeaveRequestController::class, 'store'])->name('leave-requests.store');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Salary Advance Requests - Employee Portal
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/salary-advance-requests', [EmployeePortalSalaryAdvanceRequestController::class, 'index'])->name('salary-advance-requests.index');
+    Route::get('/salary-advance-requests/create', [EmployeePortalSalaryAdvanceRequestController::class, 'create'])->name('salary-advance-requests.create');
+    Route::post('/salary-advance-requests', [EmployeePortalSalaryAdvanceRequestController::class, 'store'])->name('salary-advance-requests.store');
+    Route::get('/salary-advance-requests/{salaryAdvanceRequest}', [EmployeePortalSalaryAdvanceRequestController::class, 'show'])->name('salary-advance-requests.show');
+    Route::post('/salary-advance-requests/{salaryAdvanceRequest}/cancel', [EmployeePortalSalaryAdvanceRequestController::class, 'cancel'])->name('salary-advance-requests.cancel');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Employee Portal Leave Request Show Route
+
+    */
+    Route::get('/leave-requests/{leaveRequest}', [EmployeePortalLeaveRequestController::class, 'show'])
+        ->name('leave-requests.show');
+
+    Route::post('/leave-requests/{leaveRequest}/cancel', [EmployeePortalLeaveRequestController::class, 'cancel'])
+        ->name('leave-requests.cancel');
 });
 
 
@@ -776,6 +807,30 @@ Route::middleware('auth')->group(function () {
     Route::post('/salary-advances/{salaryAdvance}/approve', [SalaryAdvanceController::class, 'approve'])->middleware('permission:salary_advances.approve')->name('salary-advances.approve');
     Route::post('/salary-advances/{salaryAdvance}/cancel', [SalaryAdvanceController::class, 'cancel'])->middleware('permission:salary_advances.cancel')->name('salary-advances.cancel');
 
+    Route::get('/manager-salary-advance-approvals', [ManagerSalaryAdvanceApprovalController::class, 'index'])
+        ->middleware('permission:salary_advance_requests.manager_approval')
+        ->name('manager-salary-advance-approvals.index');
+
+    Route::post('/manager-salary-advance-approvals/{salaryAdvanceRequest}/approve', [ManagerSalaryAdvanceApprovalController::class, 'approve'])
+        ->middleware('permission:salary_advance_requests.manager_approval')
+        ->name('manager-salary-advance-approvals.approve');
+
+    Route::post('/manager-salary-advance-approvals/{salaryAdvanceRequest}/reject', [ManagerSalaryAdvanceApprovalController::class, 'reject'])
+        ->middleware('permission:salary_advance_requests.manager_approval')
+        ->name('manager-salary-advance-approvals.reject');
+
+    Route::get('/hr-salary-advance-approvals', [HrSalaryAdvanceApprovalController::class, 'index'])
+        ->middleware('permission:salary_advance_requests.hr_approval')
+        ->name('hr-salary-advance-approvals.index');
+
+    Route::post('/hr-salary-advance-approvals/{salaryAdvanceRequest}/approve', [HrSalaryAdvanceApprovalController::class, 'approve'])
+        ->middleware('permission:salary_advance_requests.hr_approval')
+        ->name('hr-salary-advance-approvals.approve');
+
+    Route::post('/hr-salary-advance-approvals/{salaryAdvanceRequest}/reject', [HrSalaryAdvanceApprovalController::class, 'reject'])
+        ->middleware('permission:salary_advance_requests.hr_approval')
+        ->name('hr-salary-advance-approvals.reject');
+
 
 
     /*
@@ -845,6 +900,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/payroll-reports/items/{payrollItem}/payslip', [PayrollReportController::class, 'payslip'])
         ->middleware('permission:payroll_reports.payslip')
         ->name('payroll-reports.payslip');
+
+
 
 
     /*
@@ -971,6 +1028,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/payroll-bank-transfers/{payrollPeriod}/print-pdf', [PayrollBankTransferController::class, 'printPdf'])
         ->name('payroll-bank-transfers.print-pdf');
 
+
+    /*
+           |--------------------------------------------------------------------------
+           |SalaryAdvanceRequest
+           |--------------------------------------------------------------------------
+           */
+
+    Route::get('/salary-advance-requests', [SalaryAdvanceRequestAdminController::class, 'index'])
+        ->middleware('permission:salary_advance_requests.view_all')
+        ->name('salary-advance-requests.index');
+
+    Route::get('/salary-advance-requests/{salaryAdvanceRequest}', [SalaryAdvanceRequestAdminController::class, 'show'])
+        ->middleware('permission:salary_advance_requests.view_all')
+        ->name('salary-advance-requests.show');
 
 
 

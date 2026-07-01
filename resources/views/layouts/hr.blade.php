@@ -591,6 +591,27 @@
             background: rgba(0,0,0,.12); color: rgba(255,255,255,.85); font-size: 13px;
             text-align: center; font-weight: bold;
         }
+
+        .menu-badge {
+            margin-right: auto;
+            min-width: 25px;
+            height: 25px;
+            padding: 0 8px;
+            border-radius: 999px;
+            background: #fff;
+            color: #6e43a3;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 6px 14px rgba(0,0,0,.16);
+        }
+
+        .settings-submenu a.active .menu-badge {
+            background: #fde68a;
+            color: #92400e;
+        }
         .search-box.has-value input { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.38); }
 
         @media(max-width:900px) {
@@ -674,6 +695,51 @@
         </div>
         <nav class="menu">
 
+            @php
+                $managerSalaryAdvancePendingCount = 0;
+                $hrSalaryAdvancePendingCount = 0;
+
+                $leaveRequestsPendingCount = 0;
+                $managerLeavePendingCount = 0;
+                $hrLeavePendingCount = 0;
+
+                if (auth()->user()->hasPermission('leave_requests.view')) {
+                    $leaveRequestsPendingCount = \App\Models\LeaveRequest::query()
+                        ->where('status', 'pending')
+                        ->count();
+                }
+
+                if (auth()->user()->hasPermission('leave_requests.manager_approval')) {
+                    $managerLeavePendingCount = \App\Models\LeaveRequest::query()
+                        ->where('workflow_status', 'pending_manager')
+                        ->whereHas('employee', function ($query) {
+                            $query->where('direct_manager_user_id', auth()->id());
+                        })
+                        ->count();
+                }
+
+                if (auth()->user()->hasPermission('leave_requests.hr_approval')) {
+                    $hrLeavePendingCount = \App\Models\LeaveRequest::query()
+                        ->where('workflow_status', 'manager_approved_pending_hr')
+                        ->count();
+                }
+
+                if (auth()->user()->hasPermission('salary_advance_requests.manager_approval')) {
+                    $managerSalaryAdvancePendingCount = \App\Models\SalaryAdvanceRequest::query()
+                        ->where('workflow_status', 'pending_manager')
+                        ->whereHas('employee', function ($query) {
+                            $query->where('direct_manager_user_id', auth()->id());
+                        })
+                        ->count();
+                }
+
+                if (auth()->user()->hasPermission('salary_advance_requests.hr_approval')) {
+                    $hrSalaryAdvancePendingCount = \App\Models\SalaryAdvanceRequest::query()
+                        ->where('workflow_status', 'manager_approved_pending_hr')
+                        ->count();
+                }
+            @endphp
+
             <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-table-cells-large"></i>
                 الرئيسية
@@ -722,6 +788,12 @@
                     <summary class="settings-title payroll-summary">
                         <i class="fas fa-calendar-days"></i>
                         <span>الإجازات</span>
+                        @php
+                            $totalLeaveMenuCount = ($leaveRequestsPendingCount ?? 0) + ($managerLeavePendingCount ?? 0) + ($hrLeavePendingCount ?? 0);
+                        @endphp
+                        @if($totalLeaveMenuCount > 0)
+                            <span class="menu-badge">{{ $totalLeaveMenuCount }}</span>
+                        @endif
                         <i class="fas fa-chevron-down payroll-arrow"></i>
                     </summary>
 
@@ -732,6 +804,9 @@
                             <a href="{{ route('leave-requests.index') }}" class="{{ request()->routeIs('leave-requests.*') ? 'active' : '' }}">
                                 <i class="fas fa-calendar-days"></i>
                                 <span>طلبات الإجازات</span>
+                                @if(($leaveRequestsPendingCount ?? 0) > 0)
+                                    <span class="menu-badge">{{ $leaveRequestsPendingCount }}</span>
+                                @endif
                             </a>
                         @endif
 
@@ -749,6 +824,9 @@
                             <a href="{{ route('manager-leave-approvals.index') }}" class="{{ request()->routeIs('manager-leave-approvals.*') ? 'active' : '' }}">
                                 <i class="fas fa-user-check"></i>
                                 <span>موافقة المدير المباشر</span>
+                                @if(($managerLeavePendingCount ?? 0) > 0)
+                                    <span class="menu-badge">{{ $managerLeavePendingCount }}</span>
+                                @endif
                             </a>
                         @endif
 
@@ -756,6 +834,9 @@
                             <a href="{{ route('hr-leave-approvals.index') }}" class="{{ request()->routeIs('hr-leave-approvals.*') ? 'active' : '' }}">
                                 <i class="fas fa-user-shield"></i>
                                 <span>موافقة الموارد البشرية</span>
+                                @if(($hrLeavePendingCount ?? 0) > 0)
+                                    <span class="menu-badge">{{ $hrLeavePendingCount }}</span>
+                                @endif
                             </a>
                         @endif
                     </div>
@@ -770,6 +851,8 @@
                 auth()->user()->hasPermission('payroll_bank_transfers.view') ||
                 auth()->user()->hasPermission('payroll_bank_transfer_batches.view') ||
                 auth()->user()->hasPermission('salary_advances.view') ||
+                auth()->user()->hasPermission('salary_advance_requests.manager_approval') ||
+                auth()->user()->hasPermission('salary_advance_requests.hr_approval') ||
                 auth()->user()->hasPermission('employee_deductions.view') ||
                 auth()->user()->hasPermission('employee_suspensions.view') ||
                 auth()->user()->hasPermission('salary_payment_methods.view') ||
@@ -863,6 +946,33 @@
                             <a href="{{ route('employee-deductions.index') }}" class="{{ request()->routeIs('employee-deductions.*') ? 'active' : '' }}">
                                 <i class="fas fa-file-invoice-dollar"></i>
                                 <span>استقطاعات الموظفين</span>
+                            </a>
+                        @endif
+                        @if(auth()->user()->hasPermission('salary_advance_requests.view_all'))
+                            <a href="{{ route('salary-advance-requests.index') }}"
+                               class="{{ request()->routeIs('salary-advance-requests.*') ? 'active' : '' }}">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <span>متابعة طلبات السلف</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('salary_advance_requests.manager_approval'))
+                            <a href="{{ route('manager-salary-advance-approvals.index') }}" class="{{ request()->routeIs('manager-salary-advance-approvals.*') ? 'active' : '' }}">
+                                <i class="fas fa-user-check"></i>
+                                <span>موافقات المدير على السلف</span>
+                                @if($managerSalaryAdvancePendingCount > 0)
+                                    <span class="menu-badge">{{ $managerSalaryAdvancePendingCount }}</span>
+                                @endif
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->hasPermission('salary_advance_requests.hr_approval'))
+                            <a href="{{ route('hr-salary-advance-approvals.index') }}" class="{{ request()->routeIs('hr-salary-advance-approvals.*') ? 'active' : '' }}">
+                                <i class="fas fa-user-shield"></i>
+                                <span>موافقات الموارد البشرية على السلف</span>
+                                @if($hrSalaryAdvancePendingCount > 0)
+                                    <span class="menu-badge">{{ $hrSalaryAdvancePendingCount }}</span>
+                                @endif
                             </a>
                         @endif
 

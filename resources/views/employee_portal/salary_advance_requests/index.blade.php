@@ -1,11 +1,11 @@
 @extends('layouts.employee_portal')
 
-@section('title', 'طلبات الإجازات')
+@section('title', 'طلبات السلف')
 
 @section('content')
 
     <style>
-        .leave-request-card {
+        .advance-request-card {
             border: 1px solid #eeeafc;
             border-radius: 24px;
             padding: 22px;
@@ -14,7 +14,7 @@
             overflow: hidden;
         }
 
-        .leave-request-header {
+        .advance-request-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -23,24 +23,24 @@
             margin-bottom: 16px;
         }
 
-        .leave-request-title {
+        .advance-request-title {
             display: grid;
             gap: 4px;
         }
 
-        .leave-request-title strong {
+        .advance-request-title strong {
             color: #111827;
             font-size: 16px;
             font-weight: 900;
         }
 
-        .leave-request-title span {
+        .advance-request-title span {
             color: #6b7280;
             font-size: 12px;
             font-weight: 800;
         }
 
-        .leave-meta-grid {
+        .advance-meta-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
@@ -222,21 +222,21 @@
             border: 1px solid #bbf7d0;
         }
 
-        .leave-actions {
+        .advance-actions {
             margin-top: 14px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
 
-        .leave-summary-grid {
+        .advance-summary-grid {
             display: grid;
             grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 12px;
             margin-bottom: 18px;
         }
 
-        .leave-summary-card {
+        .advance-summary-card {
             background: #fff;
             border: 1px solid #eeeafc;
             border-radius: 18px;
@@ -246,7 +246,7 @@
             overflow: hidden;
         }
 
-        .leave-summary-card::before {
+        .advance-summary-card::before {
             content: "";
             position: absolute;
             inset-inline-start: 0;
@@ -256,27 +256,13 @@
             background: #6d5bd0;
         }
 
-        .leave-summary-card.orange::before {
-            background: #f59e0b;
-        }
+        .advance-summary-card.orange::before { background: #f59e0b; }
+        .advance-summary-card.blue::before { background: #3b82f6; }
+        .advance-summary-card.green::before { background: #16a34a; }
+        .advance-summary-card.red::before { background: #dc2626; }
+        .advance-summary-card.gray::before { background: #6b7280; }
 
-        .leave-summary-card.blue::before {
-            background: #3b82f6;
-        }
-
-        .leave-summary-card.green::before {
-            background: #16a34a;
-        }
-
-        .leave-summary-card.red::before {
-            background: #dc2626;
-        }
-
-        .leave-summary-card.gray::before {
-            background: #6b7280;
-        }
-
-        .leave-summary-card span {
+        .advance-summary-card span {
             display: block;
             color: #6b7280;
             font-size: 12px;
@@ -285,7 +271,7 @@
             line-height: 1.6;
         }
 
-        .leave-summary-card strong {
+        .advance-summary-card strong {
             display: block;
             color: #111827;
             font-size: 24px;
@@ -293,7 +279,7 @@
             line-height: 1;
         }
 
-        .leave-info-note {
+        .advance-info-note {
             background: #f8f7ff;
             border: 1px solid #e7e0ff;
             border-radius: 18px;
@@ -305,11 +291,11 @@
         }
 
         @media (max-width: 850px) {
-            .leave-summary-grid {
+            .advance-summary-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .leave-meta-grid {
+            .advance-meta-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -341,8 +327,8 @@
         }
 
         @media (max-width: 520px) {
-            .leave-summary-grid,
-            .leave-meta-grid {
+            .advance-summary-grid,
+            .advance-meta-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -350,12 +336,12 @@
 
     <div class="portal-topbar">
         <div class="portal-title">
-            <h2>طلبات الإجازات</h2>
-            <p>{{ $employee->display_name }} — متابعة طلبات الإجازة</p>
+            <h2>طلبات السلف</h2>
+            <p>{{ $employee->display_name }} — متابعة طلبات السلف ومسار الموافقات</p>
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a href="{{ route('employee-portal.leave-requests.create') }}" class="portal-btn">طلب إجازة جديد</a>
+            <a href="{{ route('employee-portal.salary-advance-requests.create') }}" class="portal-btn">طلب سلفة جديد</a>
 
             <form method="POST" action="{{ route('employee-portal.logout') }}">
                 @csrf
@@ -373,83 +359,72 @@
     @endif
 
     @php
-        $leaveRequestsBaseQuery = \App\Models\LeaveRequest::query()
+        $advanceRequestsBaseQuery = \App\Models\SalaryAdvanceRequest::query()
             ->where('employee_id', $employee->id);
 
-        $leaveStats = [
-            'total' => (clone $leaveRequestsBaseQuery)->count(),
-
-            'pending_manager' => (clone $leaveRequestsBaseQuery)
-                ->where('workflow_status', 'pending_manager')
-                ->count(),
-
-            'pending_hr' => (clone $leaveRequestsBaseQuery)
-                ->where('workflow_status', 'manager_approved_pending_hr')
-                ->count(),
-
-            'approved' => (clone $leaveRequestsBaseQuery)
+        $advanceStats = [
+            'total' => (clone $advanceRequestsBaseQuery)->count(),
+            'pending_manager' => (clone $advanceRequestsBaseQuery)->where('workflow_status', 'pending_manager')->count(),
+            'pending_hr' => (clone $advanceRequestsBaseQuery)->where('workflow_status', 'manager_approved_pending_hr')->count(),
+            'registered' => (clone $advanceRequestsBaseQuery)
                 ->where(function ($query) {
-                    $query->where('workflow_status', 'approved_by_hr')
+                    $query->where('workflow_status', 'registered')
+                        ->orWhere('workflow_status', 'approved_by_hr')
                         ->orWhere('status', 'approved');
                 })
                 ->count(),
-
-            'rejected' => (clone $leaveRequestsBaseQuery)
-                ->whereIn('workflow_status', ['rejected_by_manager', 'rejected_by_hr'])
-                ->count(),
-
-            'cancelled' => (clone $leaveRequestsBaseQuery)
-                ->where('workflow_status', 'cancelled')
-                ->count(),
+            'rejected' => (clone $advanceRequestsBaseQuery)->whereIn('workflow_status', ['rejected_by_manager', 'rejected_by_hr'])->count(),
+            'cancelled' => (clone $advanceRequestsBaseQuery)->where('workflow_status', 'cancelled')->count(),
         ];
     @endphp
 
-    <div class="leave-summary-grid">
-        <div class="leave-summary-card">
+    <div class="advance-summary-grid">
+        <div class="advance-summary-card">
             <span>إجمالي طلباتي</span>
-            <strong>{{ $leaveStats['total'] ?? 0 }}</strong>
+            <strong>{{ $advanceStats['total'] ?? 0 }}</strong>
         </div>
 
-        <div class="leave-summary-card orange">
+        <div class="advance-summary-card orange">
             <span>بانتظار المدير</span>
-            <strong>{{ $leaveStats['pending_manager'] ?? 0 }}</strong>
+            <strong>{{ $advanceStats['pending_manager'] ?? 0 }}</strong>
         </div>
 
-        <div class="leave-summary-card blue">
+        <div class="advance-summary-card blue">
             <span>بانتظار HR</span>
-            <strong>{{ $leaveStats['pending_hr'] ?? 0 }}</strong>
+            <strong>{{ $advanceStats['pending_hr'] ?? 0 }}</strong>
         </div>
 
-        <div class="leave-summary-card green">
-            <span>مقبولة ومعتمدة</span>
-            <strong>{{ $leaveStats['approved'] ?? 0 }}</strong>
+        <div class="advance-summary-card green">
+            <span>مسجلة ومعتمدة</span>
+            <strong>{{ $advanceStats['registered'] ?? 0 }}</strong>
         </div>
 
-        <div class="leave-summary-card red">
+        <div class="advance-summary-card red">
             <span>مرفوضة</span>
-            <strong>{{ $leaveStats['rejected'] ?? 0 }}</strong>
+            <strong>{{ $advanceStats['rejected'] ?? 0 }}</strong>
         </div>
 
-        <div class="leave-summary-card gray">
+        <div class="advance-summary-card gray">
             <span>ملغاة</span>
-            <strong>{{ $leaveStats['cancelled'] ?? 0 }}</strong>
+            <strong>{{ $advanceStats['cancelled'] ?? 0 }}</strong>
         </div>
     </div>
 
-    <div class="leave-info-note">
-        يمكنك متابعة مسار كل طلب من مرحلة الإرسال إلى موافقة المدير المباشر ثم الموارد البشرية وحتى الإغلاق النهائي.
+    <div class="advance-info-note">
+        يمكنك متابعة مسار كل طلب من مرحلة الإرسال إلى موافقة المدير المباشر ثم الموارد البشرية وحتى تسجيل السلفة.
     </div>
 
     <div class="portal-card">
         <div style="display:grid; gap:16px;">
-            @forelse($leaveRequests as $leaveRequest)
+            @forelse($salaryAdvanceRequests as $salaryAdvanceRequest)
                 @php
-                    $workflowStatus = $leaveRequest->workflow_status ?? 'pending_manager';
+                    $workflowStatus = $salaryAdvanceRequest->workflow_status ?? 'pending_manager';
 
                     $workflowName = match($workflowStatus) {
                         'pending_manager' => 'قيد المراجعة من المدير المباشر',
                         'manager_approved_pending_hr' => 'وافق المدير - بانتظار الموارد البشرية',
                         'rejected_by_manager' => 'مرفوضة من المدير المباشر',
+                        'registered' => 'تم اعتمادها وتسجيل السلفة',
                         'approved_by_hr' => 'مقبولة من الموارد البشرية',
                         'rejected_by_hr' => 'مرفوضة من الموارد البشرية',
                         'cancelled' => 'ملغاة',
@@ -458,7 +433,7 @@
 
                     $workflowClass = match($workflowStatus) {
                         'manager_approved_pending_hr' => 'status-processing',
-                        'approved_by_hr' => 'status-approved',
+                        'registered', 'approved_by_hr' => 'status-approved',
                         'rejected_by_manager', 'rejected_by_hr' => 'status-rejected',
                         'cancelled' => 'status-cancelled',
                         default => 'status-pending',
@@ -476,10 +451,10 @@
                     $step3Icon = '3';
                     $step4Icon = '4';
 
-                    $step1Desc = 'تم إرسال الطلب';
+                    $step1Desc = 'تم إرسال طلب السلفة';
                     $step2Desc = 'بانتظار قرار المدير المباشر';
                     $step3Desc = 'لم يصل إلى الموارد البشرية بعد';
-                    $step4Desc = 'لا يوجد إجراء';
+                    $step4Desc = 'لم يتم تسجيل السلفة بعد';
 
                     if ($workflowStatus === 'pending_manager') {
                         $step1Class = 'done';
@@ -491,7 +466,7 @@
                         $step2Icon = '…';
                         $step2Desc = 'قيد المراجعة من المدير المباشر';
                         $step3Desc = 'لم يصل إلى الموارد البشرية بعد';
-                        $step4Desc = 'لم يتم الإغلاق بعد';
+                        $step4Desc = 'بانتظار إكمال الموافقات';
                     }
 
                     if ($workflowStatus === 'manager_approved_pending_hr') {
@@ -505,7 +480,7 @@
                         $step2Desc = 'تمت موافقة المدير المباشر';
                         $step3Icon = '…';
                         $step3Desc = 'قيد المعالجة من الموارد البشرية';
-                        $step4Desc = 'بانتظار القرار النهائي';
+                        $step4Desc = 'بانتظار تسجيل السلفة';
                     }
 
                     if ($workflowStatus === 'rejected_by_manager') {
@@ -521,7 +496,7 @@
                         $step4Desc = 'تم إنهاء الطلب';
                     }
 
-                    if ($workflowStatus === 'approved_by_hr') {
+                    if ($workflowStatus === 'registered' || $workflowStatus === 'approved_by_hr') {
                         $step1Class = 'done';
                         $step2Class = 'done';
                         $step3Class = 'done';
@@ -531,9 +506,9 @@
                         $step2Icon = '✓';
                         $step2Desc = 'تمت موافقة المدير المباشر';
                         $step3Icon = '✓';
-                        $step3Desc = 'تم الاعتماد النهائي من الموارد البشرية';
+                        $step3Desc = 'تم اعتماد الموارد البشرية';
                         $step4Icon = '✓';
-                        $step4Desc = 'تم إغلاق الطلب بالموافقة';
+                        $step4Desc = 'تم تسجيل السلفة وجدولة الأقساط';
                     }
 
                     if ($workflowStatus === 'rejected_by_hr') {
@@ -552,8 +527,8 @@
 
                     if ($workflowStatus === 'cancelled') {
                         $step1Class = 'done';
-                        $step2Class = $leaveRequest->direct_manager_status === 'approved' ? 'done' : 'waiting';
-                        $step3Class = $leaveRequest->hr_status === 'approved' || $leaveRequest->status === 'approved' ? 'done' : 'waiting';
+                        $step2Class = $salaryAdvanceRequest->direct_manager_status === 'approved' ? 'done' : 'waiting';
+                        $step3Class = $salaryAdvanceRequest->hr_status === 'approved' || $salaryAdvanceRequest->status === 'approved' ? 'done' : 'waiting';
                         $step4Class = 'rejected';
                         $progressWidth = '75%';
 
@@ -564,20 +539,22 @@
                         $step1Desc = 'تم إرسال الطلب';
                         $step2Desc = $step2Class === 'done' ? 'تمت موافقة المدير المباشر قبل الإلغاء' : 'لم تتم موافقة المدير قبل الإلغاء';
                         $step3Desc = $step3Class === 'done' ? 'تم اعتماد الموارد البشرية قبل الإلغاء' : 'لم يتم اعتماد الموارد البشرية قبل الإلغاء';
-                        $step4Desc = 'تم إلغاء الطلب من بوابة الموظف';
+                        $step4Desc = 'تم إلغاء الطلب';
                     }
 
-                    $cancelReason = $leaveRequest->reject_reason
-                        ?? $leaveRequest->direct_manager_reject_reason
-                        ?? $leaveRequest->hr_reject_reason
+                    $cancelReason = $salaryAdvanceRequest->direct_manager_reject_reason
+                        ?? $salaryAdvanceRequest->hr_reject_reason
                         ?? null;
                 @endphp
 
-                <div class="leave-request-card">
-                    <div class="leave-request-header">
-                        <div class="leave-request-title">
-                            <strong>{{ $leaveRequest->leaveType->name ?? '-' }}</strong>
-                            <span>رقم الطلب: #{{ $leaveRequest->id }}</span>
+                <div class="advance-request-card">
+                    <div class="advance-request-header">
+                        <div class="advance-request-title">
+                            <strong>طلب سلفة {{ number_format((float) $salaryAdvanceRequest->amount, 2) }}</strong>
+                            <span>
+                                رقم الطلب:
+                                {{ $salaryAdvanceRequest->request_number ?? '#' . $salaryAdvanceRequest->id }}
+                            </span>
                         </div>
 
                         <span class="status-pill {{ $workflowClass }}">
@@ -585,11 +562,13 @@
                         </span>
                     </div>
 
-                    <div class="leave-meta-grid">
-                        <div>من: {{ optional($leaveRequest->start_date)->format('Y-m-d') }}</div>
-                        <div>إلى: {{ optional($leaveRequest->end_date)->format('Y-m-d') }}</div>
-                        <div>الأيام: {{ $leaveRequest->days_count }}</div>
-                        <div>تاريخ الطلب: {{ optional($leaveRequest->created_at)->format('Y-m-d') }}</div>
+                    <div class="advance-meta-grid">
+                        <div>المبلغ المطلوب: {{ number_format((float) $salaryAdvanceRequest->amount, 2) }}</div>
+                        <div>المبلغ المعتمد: {{ $salaryAdvanceRequest->approved_amount ? number_format((float) $salaryAdvanceRequest->approved_amount, 2) : '-' }}</div>
+                        <div>الأقساط: {{ $salaryAdvanceRequest->installments_count }}</div>
+                        <div>بداية الخصم: {{ optional($salaryAdvanceRequest->deduction_start_date)->format('Y-m') }}</div>
+                        <div>تاريخ الطلب: {{ optional($salaryAdvanceRequest->created_at)->format('Y-m-d') }}</div>
+                        <div>رقم السلفة: {{ $salaryAdvanceRequest->registeredSalaryAdvance->advance_number ?? '-' }}</div>
                     </div>
 
                     <div class="progress-wrapper">
@@ -621,22 +600,22 @@
                             <div class="progress-step {{ $step4Class }}">
                                 <div class="progress-dot">{{ $step4Icon }}</div>
                                 <div class="progress-step-text">
-                                    <div class="progress-label">الإغلاق النهائي</div>
+                                    <div class="progress-label">تسجيل السلفة</div>
                                     <div class="progress-desc">{{ $step4Desc }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    @if($leaveRequest->direct_manager_reject_reason)
+                    @if($salaryAdvanceRequest->direct_manager_reject_reason)
                         <div class="reason-box rejected">
-                            سبب رفض المدير المباشر: {{ $leaveRequest->direct_manager_reject_reason }}
+                            سبب رفض المدير المباشر: {{ $salaryAdvanceRequest->direct_manager_reject_reason }}
                         </div>
                     @endif
 
-                    @if($leaveRequest->hr_reject_reason)
+                    @if($salaryAdvanceRequest->hr_reject_reason)
                         <div class="reason-box rejected">
-                            سبب رفض الموارد البشرية: {{ $leaveRequest->hr_reject_reason }}
+                            سبب رفض الموارد البشرية: {{ $salaryAdvanceRequest->hr_reject_reason }}
                         </div>
                     @endif
 
@@ -646,9 +625,11 @@
                         </div>
                     @endif
 
-                    @if($workflowStatus === 'approved_by_hr')
+                    @if($workflowStatus === 'registered' && $salaryAdvanceRequest->registeredSalaryAdvance)
                         <div class="reason-box success">
-                            تم اعتماد طلب الإجازة من الموارد البشرية، وتم إغلاق الطلب بالموافقة.
+                            تم تسجيل السلفة برقم:
+                            <strong>{{ $salaryAdvanceRequest->registeredSalaryAdvance->advance_number }}</strong>
+                            وسيتم خصم الأقساط حسب الجدولة المعتمدة.
                         </div>
                     @endif
 
@@ -656,7 +637,7 @@
                         <div class="reason-box cancelled">
                             <strong>تم إلغاء الطلب نهائيًا.</strong>
                             <br>
-                            تم إلغاء الطلب من بوابة الموظف، ولا يعود الطلب إلى المدير المباشر أو الموارد البشرية بعد الإلغاء.
+                            لا يعود الطلب إلى المدير المباشر أو الموارد البشرية بعد الإلغاء.
                             @if($cancelReason)
                                 <br>
                                 <strong>سبب الإلغاء:</strong> {{ $cancelReason }}
@@ -664,22 +645,15 @@
                         </div>
                     @endif
 
-                    <div class="leave-actions">
-                        @if(\Illuminate\Support\Facades\Route::has('employee-portal.leave-requests.show'))
-                            <a href="{{ route('employee-portal.leave-requests.show', $leaveRequest) }}" class="portal-btn secondary">
-                                عرض التفاصيل
-                            </a>
-                        @endif
+                    <div class="advance-actions">
+                        <a href="{{ route('employee-portal.salary-advance-requests.show', $salaryAdvanceRequest) }}" class="portal-btn secondary">
+                            عرض التفاصيل
+                        </a>
 
-                        @php
-                            $canEmployeeCancelLeave = $leaveRequest->can_employee_cancel
-                                ?? in_array($workflowStatus, ['pending_manager', 'manager_approved_pending_hr'], true);
-                        @endphp
-
-                        @if($canEmployeeCancelLeave && \Illuminate\Support\Facades\Route::has('employee-portal.leave-requests.cancel'))
-                            <form method="POST" action="{{ route('employee-portal.leave-requests.cancel', $leaveRequest) }}">
+                        @if($salaryAdvanceRequest->can_employee_cancel)
+                            <form method="POST" action="{{ route('employee-portal.salary-advance-requests.cancel', $salaryAdvanceRequest) }}">
                                 @csrf
-                                <button type="submit" class="portal-btn danger" onclick="return confirm('تأكيد إلغاء طلب الإجازة؟')">
+                                <button type="submit" class="portal-btn danger" onclick="return confirm('تأكيد إلغاء طلب السلفة؟')">
                                     إلغاء الطلب
                                 </button>
                             </form>
@@ -688,13 +662,13 @@
                 </div>
             @empty
                 <div style="text-align:center; color:#6b7280; font-weight:800; padding:30px;">
-                    لا توجد طلبات إجازة حتى الآن.
+                    لا توجد طلبات سلف حتى الآن.
                 </div>
             @endforelse
         </div>
 
         <div style="margin-top:16px;">
-            {{ $leaveRequests->links() }}
+            {{ $salaryAdvanceRequests->links() }}
         </div>
     </div>
 @endsection

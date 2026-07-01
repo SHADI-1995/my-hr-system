@@ -35,6 +35,28 @@
         $healthCardsPercentValid = $healthCardsTotalReal ? round(($healthCardsValid / $healthCardsTotal) * 100) : 0;
         $healthCardsPercentNear = $healthCardsTotalReal ? round(($healthCardsNear / $healthCardsTotal) * 100) : 0;
         $healthCardsPercentExpired = $healthCardsTotalReal ? round(($healthCardsExpired / $healthCardsTotal) * 100) : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Salary Advance Requests Stats
+        |--------------------------------------------------------------------------
+        */
+        $salaryAdvanceRequestsStats = [
+            'pending_manager' => \App\Models\SalaryAdvanceRequest::where('workflow_status', 'pending_manager')->count(),
+
+            'pending_hr' => \App\Models\SalaryAdvanceRequest::where('workflow_status', 'manager_approved_pending_hr')->count(),
+
+            'registered' => \App\Models\SalaryAdvanceRequest::where(function ($query) {
+                $query->where('workflow_status', 'registered')
+                    ->orWhere('status', 'approved');
+            })->count(),
+
+            'rejected' => \App\Models\SalaryAdvanceRequest::whereIn('workflow_status', [
+                'rejected_by_manager',
+                'rejected_by_hr',
+            ])->count(),
+        ];
+
     @endphp
 
     <div class="dashboard-page">
@@ -132,6 +154,77 @@
             @endif
 
         </div>
+
+        @if(
+            auth()->user()->hasPermission('salary_advance_requests.manager_approval')
+            || auth()->user()->hasPermission('salary_advance_requests.hr_approval')
+            || auth()->user()->hasPermission('salary_advances.view')
+        )
+            <div class="salary-advance-dashboard-section">
+
+                <div class="section-title-row">
+                    <div>
+                        <h3>
+                            <i class="fas fa-hand-holding-dollar"></i>
+                            طلبات السلف
+                        </h3>
+                    </div>
+
+                    @if(auth()->user()->hasPermission('salary_advances.view'))
+                        <a href="{{ route('salary-advances.index') }}" class="soft-main-btn secondary">
+                            عرض سلف الموظفين
+                        </a>
+                    @endif
+                </div>
+
+                <div class="dashboard-grid compact-dashboard-grid">
+
+                    @if(auth()->user()->hasPermission('salary_advance_requests.manager_approval'))
+                        <a href="{{ route('manager-salary-advance-approvals.index') }}"
+                           class="dashboard-card orange compact-card soft-stat-card salary-card-link">
+                            <div class="stat-card-content">
+                                <span>بانتظار المدير المباشر</span>
+                                <strong>{{ $salaryAdvanceRequestsStats['pending_manager'] ?? 0 }}</strong>
+                            </div>
+                            <i class="fas fa-user-check"></i>
+                        </a>
+                    @endif
+
+                    @if(auth()->user()->hasPermission('salary_advance_requests.hr_approval'))
+                        <a href="{{ route('hr-salary-advance-approvals.index') }}"
+                           class="dashboard-card purple compact-card soft-stat-card salary-card-link">
+                            <div class="stat-card-content">
+                                <span>بانتظار الموارد البشرية</span>
+                                <strong>{{ $salaryAdvanceRequestsStats['pending_hr'] ?? 0 }}</strong>
+                            </div>
+                            <i class="fas fa-user-shield"></i>
+                        </a>
+                    @endif
+
+                    @if(auth()->user()->hasPermission('salary_advances.view'))
+                        <a href="{{ route('salary-advances.index') }}"
+                           class="dashboard-card green compact-card soft-stat-card salary-card-link">
+                            <div class="stat-card-content">
+                                <span>سلف معتمدة ومسجلة</span>
+                                <strong>{{ $salaryAdvanceRequestsStats['registered'] ?? 0 }}</strong>
+                            </div>
+                            <i class="fas fa-sack-dollar"></i>
+                        </a>
+                    @endif
+
+                    @if(auth()->user()->hasPermission('salary_advance_requests.manager_approval') || auth()->user()->hasPermission('salary_advance_requests.hr_approval'))
+                        <div class="dashboard-card red compact-card soft-stat-card">
+                            <div class="stat-card-content">
+                                <span>طلبات سلف مرفوضة</span>
+                                <strong>{{ $salaryAdvanceRequestsStats['rejected'] ?? 0 }}</strong>
+                            </div>
+                            <i class="fas fa-circle-xmark"></i>
+                        </div>
+                    @endif
+
+                </div>
+            </div>
+        @endif
 
         @if(auth()->user()->hasPermission('documents.view'))
             <div class="documents-analytics-section">
@@ -350,6 +443,18 @@
                     <a href="{{ route('payrolls.index') }}" class="btn">الرواتب</a>
                 @endif
 
+                @if(auth()->user()->hasPermission('salary_advance_requests.manager_approval'))
+                    <a href="{{ route('manager-salary-advance-approvals.index') }}" class="btn">موافقات المدير على السلف</a>
+                @endif
+
+                @if(auth()->user()->hasPermission('salary_advance_requests.hr_approval'))
+                    <a href="{{ route('hr-salary-advance-approvals.index') }}" class="btn">موافقات HR على السلف</a>
+                @endif
+
+                @if(auth()->user()->hasPermission('salary_advances.view'))
+                    <a href="{{ route('salary-advances.index') }}" class="btn">سلف الموظفين</a>
+                @endif
+
                 @if(auth()->user()->hasPermission('documents.view'))
                     <a href="{{ route('documents.index') }}" class="btn">متابعة الوثائق</a>
                 @endif
@@ -479,6 +584,24 @@
             font-size: 34px !important;
             opacity: .16 !important;
             color: #4b5563 !important;
+        }
+
+        .salary-advance-dashboard-section {
+            background: #ffffff;
+            border: 1px solid #eeeafd;
+            border-radius: 26px;
+            padding: 22px;
+            margin-bottom: 28px;
+            box-shadow: 0 18px 45px rgba(76, 59, 145, 0.08);
+        }
+
+        .salary-card-link {
+            text-decoration: none;
+            display: block;
+        }
+
+        .salary-card-link:hover {
+            color: inherit;
         }
 
         .documents-analytics-section {
