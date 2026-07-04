@@ -85,7 +85,7 @@ class EmployeePortalAuthController extends Controller
 
         if ($employee->portal_password && $employee->portal_email_verified_at) {
             return redirect()
-                ->route('employee-portal.login')
+                ->route('unified-login', ['account' => 'employee'])
                 ->with('error', 'هذا الموظف مسجل مسبقاً، يرجى تسجيل الدخول أو استخدام نسيت كلمة المرور');
         }
 
@@ -122,7 +122,7 @@ class EmployeePortalAuthController extends Controller
     public function showVerifyEmail()
     {
         if (!session('employee_portal_pending_verification_id')) {
-            return redirect()->route('employee-portal.login');
+            return redirect()->route('unified-login', ['account' => 'employee']);
         }
 
         return view('employee_portal.auth.verify_email');
@@ -140,7 +140,9 @@ class EmployeePortalAuthController extends Controller
         $employee = Employee::find(session('employee_portal_pending_verification_id'));
 
         if (!$employee) {
-            return redirect()->route('employee-portal.login')->with('error', 'انتهت جلسة التحقق، يرجى تسجيل الدخول مرة أخرى');
+            return redirect()
+                ->route('unified-login', ['account' => 'employee'])
+                ->with('error', 'انتهت جلسة التحقق، يرجى تسجيل الدخول مرة أخرى');
         }
 
         if (!$employee->portal_email_verification_code || !$employee->portal_email_verification_expires_at) {
@@ -183,7 +185,9 @@ class EmployeePortalAuthController extends Controller
         $employee = Employee::find(session('employee_portal_pending_verification_id'));
 
         if (!$employee) {
-            return redirect()->route('employee-portal.login')->with('error', 'انتهت جلسة التحقق، يرجى تسجيل الدخول مرة أخرى');
+            return redirect()
+                ->route('unified-login', ['account' => 'employee'])
+                ->with('error', 'انتهت جلسة التحقق، يرجى تسجيل الدخول مرة أخرى');
         }
 
         $emailToVerify = $employee->portal_pending_email ?: $employee->email;
@@ -197,7 +201,7 @@ class EmployeePortalAuthController extends Controller
 
     public function showLogin()
     {
-        return view('employee_portal.auth.login');
+        return redirect()->route('unified-login', ['account' => 'employee']);
     }
 
     public function login(Request $request)
@@ -331,7 +335,7 @@ class EmployeePortalAuthController extends Controller
         session()->forget('employee_portal_password_reset_id');
 
         return redirect()
-            ->route('employee-portal.login')
+            ->route('unified-login', ['account' => 'employee'])
             ->with('success', 'تم تغيير كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن');
     }
 
@@ -341,7 +345,9 @@ class EmployeePortalAuthController extends Controller
         session()->forget('employee_portal_pending_verification_id');
         session()->forget('employee_portal_password_reset_id');
 
-        return redirect()->route('employee-portal.login')->with('success', 'تم تسجيل الخروج بنجاح');
+        return redirect()
+            ->route('unified-login', ['account' => 'employee'])
+            ->with('success', 'تم تسجيل الخروج بنجاح');
     }
 
     private function sendEmailVerificationCode(Employee $employee, ?string $emailToVerify = null): bool

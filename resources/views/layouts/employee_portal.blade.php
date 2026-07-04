@@ -146,6 +146,21 @@
             color: #6d28d9;
         }
 
+        .portal-logout-form {
+            margin: 0;
+        }
+
+        .portal-logout-link {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, .14);
+            text-align: right;
+            font-family: inherit;
+        }
+
+        .portal-logout-link:hover {
+            background: rgba(255, 255, 255, .20);
+        }
+
         .portal-side-footer {
             opacity: .82;
             font-size: 12px;
@@ -437,19 +452,25 @@
 
                 <div class="portal-menu-title">الحساب</div>
 
-                @if(\Illuminate\Support\Facades\Route::has('employee-portal.login'))
-                    <a href="{{ route('employee-portal.login') }}"
-                       class="portal-menu-link {{ request()->routeIs('employee-portal.login') ? 'active' : '' }}">
+                @if(\Illuminate\Support\Facades\Route::has('employee-portal.logout'))
+                    <form method="POST" action="{{ route('employee-portal.logout') }}" class="portal-logout-form">
+                        @csrf
+
+                        <button type="submit" class="portal-menu-link portal-logout-link">
+                            <span class="portal-menu-icon">🚪</span>
+                            <span>تسجيل الخروج</span>
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('unified-login', ['account' => 'employee']) }}" class="portal-menu-link">
                         <span class="portal-menu-icon">🔐</span>
-                        <span>تسجيل الدخول</span>
+                        <span>العودة لتسجيل الدخول</span>
                     </a>
                 @endif
             </nav>
         </div>
 
-        <div class="portal-side-footer">
-            يعمل على الجوال، الآيباد، واللابتوب.
-        </div>
+
     </aside>
 
     <main class="portal-content">
