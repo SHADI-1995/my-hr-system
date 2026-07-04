@@ -47,11 +47,35 @@ use App\Http\Controllers\PayrollBankTransferBatchController;
 use App\Http\Controllers\SalaryAdvanceRequestAdminController;
 
 
-
-
-
-
 Route::redirect('/', '/login');
+
+
+/*
+|--------------------------------------------------------------------------
+| Unified Login Page
+|--------------------------------------------------------------------------
+| صفحة دخول موحدة عامة.
+| هذا الرابط لا يستخدم middleware guest حتى لا يتم تحويل الأدمن المسجل دخوله
+| إلى الداشبورد عند فتح صفحة دخول الموظف من نفس المتصفح.
+|--------------------------------------------------------------------------
+*/
+Route::get('/unified-login', function () {
+    return view('auth.login');
+})->name('unified-login');
+
+
+/*
+|--------------------------------------------------------------------------
+| Employee Unified Login Shortcut
+|--------------------------------------------------------------------------
+| رابط مختصر يفتح صفحة الدخول الموحدة على تبويب الموظف مباشرة.
+|--------------------------------------------------------------------------
+*/
+Route::get('/employee-login', function () {
+    return redirect()->route('unified-login', ['account' => 'employee']);
+})->name('employee-login');
+
+
 
 Route::get('/dashboard', function () {
 
@@ -334,7 +358,6 @@ Route::middleware('auth')->group(function () {
         ->name('employees.destroy');
 
 
-
     /*
 |--------------------------------------------------------------------------
 | Employee Iqamas
@@ -377,7 +400,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/attendances/{attendance}', [AttendanceController::class, 'destroy'])
         ->middleware('permission:attendances.delete')
         ->name('attendances.destroy');
-
 
 
     /*
@@ -451,7 +473,6 @@ Route::middleware('auth')->group(function () {
             */
 
 
-
     Route::get('/official-holidays', [OfficialHolidayController::class, 'index'])
         ->middleware('permission:official_holidays.view')
         ->name('official-holidays.index');
@@ -481,8 +502,6 @@ Route::middleware('auth')->group(function () {
                 تقرير الاجازات
                 |--------------------------------------------------------------------------
                 */
-
-
 
 
     Route::get('/leave-reports', [LeaveReportController::class, 'index'])
@@ -647,7 +666,6 @@ Route::middleware('auth')->group(function () {
           */
 
 
-
     Route::get('/leave-policies', [LeavePolicyController::class, 'index'])
         ->middleware('permission:leave_policies.view')
         ->name('leave-policies.index');
@@ -679,7 +697,6 @@ Route::middleware('auth')->group(function () {
              */
 
 
-
     Route::get('/leave-types', [LeaveTypeController::class, 'index'])
         ->middleware('permission:leave_types.view')
         ->name('leave-types.index');
@@ -707,7 +724,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/leave-types/{leaveType}', [LeaveTypeController::class, 'destroy'])
         ->middleware('permission:leave_types.delete')
         ->name('leave-types.destroy');
-
 
 
     /*
@@ -768,8 +784,6 @@ Route::middleware('auth')->group(function () {
         ->name('leave-reports.hub.export');
 
 
-
-
     /*
     |--------------------------------------------------------------------------
     | Payroll Phase 2: Deductions & Suspensions
@@ -788,7 +802,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/employee-suspensions', [EmployeeSuspensionController::class, 'store'])->middleware('permission:employee_suspensions.create')->name('employee-suspensions.store');
     Route::post('/employee-suspensions/{employeeSuspension}/resume', [EmployeeSuspensionController::class, 'resume'])->middleware('permission:employee_suspensions.resume')->name('employee-suspensions.resume');
     Route::post('/employee-suspensions/{employeeSuspension}/cancel', [EmployeeSuspensionController::class, 'cancel'])->middleware('permission:employee_suspensions.cancel')->name('employee-suspensions.cancel');
-
 
 
     /*
@@ -832,7 +845,6 @@ Route::middleware('auth')->group(function () {
         ->name('hr-salary-advance-approvals.reject');
 
 
-
     /*
     |--------------------------------------------------------------------------
     | Payroll Phase 4: Payroll Periods & Salary Calculation
@@ -873,7 +885,6 @@ Route::middleware('auth')->group(function () {
         ->name('payroll-periods.destroy');
 
 
-
     /*
     |--------------------------------------------------------------------------
     | Payroll Reports & Payslips Routes
@@ -900,8 +911,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/payroll-reports/items/{payrollItem}/payslip', [PayrollReportController::class, 'payslip'])
         ->middleware('permission:payroll_reports.payslip')
         ->name('payroll-reports.payslip');
-
-
 
 
     /*
@@ -951,8 +960,6 @@ Route::middleware('auth')->group(function () {
             'update' => 'permission:cost_centers.edit',
             'destroy' => 'permission:cost_centers.delete',
         ]);
-
-
 
 
     /*
@@ -1044,7 +1051,6 @@ Route::middleware('auth')->group(function () {
         ->name('salary-advance-requests.show');
 
 
-
     /*
        |--------------------------------------------------------------------------
        |payroll_bank_transfer_batches
@@ -1094,7 +1100,6 @@ Route::middleware('auth')->group(function () {
         ->name('payroll-bank-transfer-batches.cancel');
 
 
-
     Route::get('/payroll-reports-hub', [PayrollReportsHubController::class, 'index'])
         ->name('payroll-reports-hub.index');
 
@@ -1136,4 +1141,4 @@ Route::middleware('auth')->group(function () {
         ->name('audit-logs.show');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
